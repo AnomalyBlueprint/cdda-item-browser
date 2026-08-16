@@ -273,6 +273,7 @@ input[type=text]::placeholder{color:var(--t3);}
   font-size:9px;font-weight:700;color:var(--t2);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   position:sticky;top:0;z-index:12;
+  min-width:65px;
 }
 .th-ascii{background:var(--panel);border-bottom:2px solid var(--border);border-left:1px solid var(--b2);padding:5px 6px;text-align:center;font-size:9px;font-weight:700;color:var(--amber);position:sticky;top:0;z-index:12;width:80px;}
 
@@ -505,8 +506,15 @@ style#colStyles { display: none; }
 .grid-loadmore:hover{color:var(--t1);}
 
 /* Grid stats bar */
+.grid-stats-wrap { padding:10px 14px; background:var(--card); border-bottom:1px solid var(--border); }
+.grid-stats-text { font-size:10px; color:var(--t3); margin-bottom:6px; display:flex; gap:12px; font-family:'JetBrains Mono',monospace; }
+.gst-val { font-weight:700; }
+.gst-d { color:var(--green); }
+.gst-f { color:var(--amber); }
+.gst-m { color:var(--red); opacity:0.8; }
 .grid-stats-bar {
   display:flex;width:100%;height:4px;background:var(--border);
+  border-radius:2px;overflow:hidden;
   position:relative;flex-shrink:0;cursor:crosshair;
 }
 .gsb-seg { height:100%; transition:width .2s; position:relative; }
@@ -901,10 +909,13 @@ style#colStyles { display: none; }
       <div class="stat-badge" id="gridStatBadge"><b>0</b> items</div>
     </div>
     
-    <div class="grid-stats-bar" id="gridStatsBar" title="Tileset Coverage">
-      <div class="gsb-seg direct" id="gsbDirect" style="width:0%"></div>
-      <div class="gsb-seg fallback" id="gsbFallback" style="width:0%"></div>
-      <div class="gsb-seg missing" id="gsbMissing" style="width:0%"></div>
+    <div class="grid-stats-wrap" id="gridStatsWrap" style="display:none">
+      <div class="grid-stats-text" id="gridStatsText"></div>
+      <div class="grid-stats-bar" id="gridStatsBar">
+        <div class="gsb-seg direct" id="gsbDirect" style="width:0%"></div>
+        <div class="gsb-seg fallback" id="gsbFallback" style="width:0%"></div>
+        <div class="gsb-seg missing" id="gsbMissing" style="width:0%"></div>
+      </div>
     </div>
 
     <div class="grid-body" id="gridBody"></div>
@@ -1196,8 +1207,8 @@ function updateColCSS() {
 function buildTableHeader() {
   // Colgroup
   const cg = document.getElementById('tableColGroup');
-  let cgHtml = '<col style="width:210px"><col style="width:70px">';
-  for (let i = 0; i < TILESETS.length; i++) cgHtml += '<col style="width:50px">';
+  let cgHtml = '<col style="width:220px"><col style="width:80px">';
+  for (let i = 0; i < TILESETS.length; i++) cgHtml += '<col>';
   cg.innerHTML = cgHtml;
 
   // Thead row 1: column names
@@ -1506,11 +1517,11 @@ function renderGrid() {
   document.getElementById('gridStatBadge').innerHTML = `<b>${gridFiltered.length.toLocaleString()}</b> items`;
 
   // Calculate stats bar
-  const statsBar = document.getElementById('gridStatsBar');
+  const statsWrap = document.getElementById('gridStatsWrap');
   if (ts === '__ascii__' || gridFiltered.length === 0) {
-    statsBar.style.display = 'none';
+    statsWrap.style.display = 'none';
   } else {
-    statsBar.style.display = 'flex';
+    statsWrap.style.display = 'block';
     let countDirect = 0, countFallback = 0, countMissing = 0;
     for (const e of gridFiltered) {
       const spr = getSprite(e.id, ts);
@@ -1524,7 +1535,11 @@ function renderGrid() {
     document.getElementById('gsbFallback').style.width = pF + '%';
     document.getElementById('gsbMissing').style.width = pM + '%';
     
-    statsBar.title = `Coverage: ${countDirect} Direct (${pD.toFixed(1)}%) | ${countFallback} Fallback (${pF.toFixed(1)}%) | ${countMissing} Missing (${pM.toFixed(1)}%)`;
+    document.getElementById('gridStatsText').innerHTML = 
+      `<span>Coverage:</span>` +
+      `<span class="gst-d">Direct: <span class="gst-val">${countDirect}</span> (${pD.toFixed(1)}%)</span>` +
+      `<span class="gst-f">Fallback: <span class="gst-val">${countFallback}</span> (${pF.toFixed(1)}%)</span>` +
+      `<span class="gst-m">Missing: <span class="gst-val">${countMissing}</span> (${pM.toFixed(1)}%)</span>`;
   }
 
   const body = document.getElementById('gridBody');
