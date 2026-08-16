@@ -1297,6 +1297,7 @@ function renderTable() {
   document.getElementById('tcTotal').textContent = `${total.toLocaleString()} results${pageLabel}`;
 
   // Group by type within current page
+  animatedSprites = []; // Clear animations
   const rows = buildTableRows(slice);
   const tbody = document.getElementById('tableBody');
   if (slice.length === 0) {
@@ -1393,10 +1394,27 @@ function setupSpriteObserver() {
   });
 }
 
+// ── Sprite Animation ──────────────────────────────────────────
+let animatedSprites = [];
+let animTicker = 0;
+setInterval(() => {
+  if (animatedSprites.length === 0) return;
+  animTicker++;
+  for (const s of animatedSprites) {
+    if (!s.ctx.canvas.isConnected) continue; // Skip detached
+    s.ctx.clearRect(0, 0, s.sz, s.sz);
+    const bgIdx = s.bg.length ? s.bg[animTicker % s.bg.length] : null;
+    const fgIdx = s.fg.length ? s.fg[animTicker % s.fg.length] : null;
+    if (bgIdx !== null) drawFrame(s.ctx, s.img, bgIdx, s.st, s.sw, s.sh, 0, 0, s.sz, s.sz);
+    if (fgIdx !== null) drawFrame(s.ctx, s.img, fgIdx, s.st, s.sw, s.sh, 0, 0, s.sz, s.sz);
+  }
+}, 500);
+
 async function renderSpriteCell(wrap) {
   const {fg, bg, start, sw, sh, file} = wrap.dataset;
-  const fgIdx  = fg !== '' ? parseInt(fg) : null;
-  const bgIdx  = bg !== '' ? parseInt(bg) : null;
+  const parseIds = str => (str !== '' ? str.split(',').map(n => parseInt(n)) : []);
+  const fgList = parseIds(fg);
+  const bgList = parseIds(bg);
   const startI = parseInt(start);
   const sprW   = parseInt(sw);
   const sprH   = parseInt(sh);
@@ -1417,8 +1435,19 @@ async function renderSpriteCell(wrap) {
     canvas.height = cellSize;
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
-    if (bgIdx !== null) drawFrame(ctx, img, bgIdx, startI, sprW, sprH, 0, 0, cellSize, cellSize);
-    if (fgIdx !== null) drawFrame(ctx, img, fgIdx, startI, sprW, sprH, 0, 0, cellSize, cellSize);
+    
+    if (bgList.length <= 1 && fgList.length <= 1) {
+      const bgIdx = bgList.length ? bgList[0] : null;
+      const fgIdx = fgList.length ? fgList[0] : null;
+      if (bgIdx !== null) drawFrame(ctx, img, bgIdx, startI, sprW, sprH, 0, 0, cellSize, cellSize);
+      if (fgIdx !== null) drawFrame(ctx, img, fgIdx, startI, sprW, sprH, 0, 0, cellSize, cellSize);
+    } else {
+      animatedSprites.push({ ctx, img, bg: bgList, fg: fgList, st: startI, sw: sprW, sh: sprH, sz: cellSize });
+      const bgIdx = bgList.length ? bgList[0] : null;
+      const fgIdx = fgList.length ? fgList[0] : null;
+      if (bgIdx !== null) drawFrame(ctx, img, bgIdx, startI, sprW, sprH, 0, 0, cellSize, cellSize);
+      if (fgIdx !== null) drawFrame(ctx, img, fgIdx, startI, sprW, sprH, 0, 0, cellSize, cellSize);
+    }
 
     skel.replaceWith(canvas);
   } catch(e) { skel.remove(); }
@@ -1515,6 +1544,7 @@ function renderGrid() {
     return true;
   });
 
+  animatedSprites = []; // Clear animations
   document.getElementById('gridStatBadge').innerHTML = `<b>${gridFiltered.length.toLocaleString()}</b> items`;
 
   // Calculate stats bar

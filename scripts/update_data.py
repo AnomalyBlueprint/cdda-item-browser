@@ -42,6 +42,23 @@ def find_asset(release):
             return asset['browser_download_url']
     return release.get('zipball_url')
 
+def extract_sprites(val):
+    if isinstance(val, int):
+        return [val] if val else []
+    if isinstance(val, dict):
+        s = val.get('sprite', 0)
+        return [s] if s else []
+    if isinstance(val, list):
+        res = []
+        for item in val:
+            if isinstance(item, int) and item:
+                res.append(item)
+            elif isinstance(item, dict):
+                s = item.get('sprite', 0)
+                if s: res.append(s)
+        return res
+    return []
+
 def generate_sprite_index(gfx_dir, target_dir):
     print("  Generating sprite_index.json...")
     sprite_index = {}
@@ -95,19 +112,18 @@ def generate_sprite_index(gfx_dir, target_dir):
                     else:
                         continue
                         
-                    fg = tile.get('fg', 0)
-                    bg = tile.get('bg', 0)
+                    fg = extract_sprites(tile.get('fg', 0))
+                    bg = extract_sprites(tile.get('bg', 0))
                     
-                    if isinstance(fg, list): fg = fg[0] if len(fg) > 0 else 0
-                    if isinstance(bg, list): bg = bg[0] if len(bg) > 0 else 0
+                    # Store as integers if only 1 sprite, or list if multiple variants
+                    if len(fg) == 1: fg = fg[0]
+                    elif len(fg) == 0: fg = 0
                     
-                    if isinstance(fg, dict): fg = fg.get('sprite', 0) or 0
-                    if isinstance(bg, dict): bg = bg.get('sprite', 0) or 0
+                    if len(bg) == 1: bg = bg[0]
+                    elif len(bg) == 0: bg = 0
                     
                     for i in ids:
-                        # Sometimes CDDA puts nested arrays or dicts, if so just cast to string or 0
-                        if isinstance(fg, (list, dict)): fg = 0
-                        if isinstance(bg, (list, dict)): bg = 0
+
                         
                         ts_data[i] = {
                             "file": f"gfx/{tileset}/{file_name}",
@@ -171,14 +187,17 @@ def main():
         dl_url = find_asset(release)
         zip_path = f"{version_id}.zip"
         
-        print(f"  Downloading {dl_url}...")
-        try:
-            req = urllib.request.Request(dl_url, headers=HEADERS)
-            with urllib.request.urlopen(req) as response, open(zip_path, 'wb') as out_file:
-                shutil.copyfileobj(response, out_file)
-        except Exception as e:
-            print(f"  Failed to download {dl_url}: {e}")
-            continue
+        if not os.path.exists(zip_path):
+            print(f"  Downloading {dl_url}...")
+            try:
+                req = urllib.request.Request(dl_url, headers=HEADERS)
+                with urllib.request.urlopen(req) as response, open(zip_path, 'wb') as out_file:
+                    shutil.copyfileobj(response, out_file)
+            except Exception as e:
+                print(f"  Failed to download {dl_url}: {e}")
+                continue
+        else:
+            print(f"  Using existing local {zip_path}...")
             
         print("  Extracting data/json and gfx...")
         extract_dir = f"extract_{version_id}"
