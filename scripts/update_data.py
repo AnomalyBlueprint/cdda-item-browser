@@ -131,6 +131,16 @@ def main():
     targets = fetch_releases()
     versions_info = []
     
+    # Load existing versions to skip re-downloading
+    existing_versions = {}
+    if os.path.exists('public/versions.json'):
+        try:
+            with open('public/versions.json', 'r') as f:
+                for v in json.load(f):
+                    existing_versions[v['id']] = v
+        except Exception:
+            pass
+            
     os.makedirs('public/versions', exist_ok=True)
     shutil.copy('ItemBrowser.html', 'public/index.html')
     
@@ -142,6 +152,20 @@ def main():
         version_name = release.get('name') or tag_name
         
         print(f"\n[{idx+1}/{len(targets)}] Processing {version_id} ({tag_name})...")
+        
+        published_at = release.get('published_at', datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))
+        dt = datetime.strptime(published_at, "%Y-%m-%dT%H:%M:%SZ")
+        build_time = dt.strftime("%Y-%m-%d %H:%M UTC")
+        
+        target_dir = f"public/versions/{version_id}"
+        
+        # Check cache
+        if version_id in existing_versions:
+            cached_v = existing_versions[version_id]
+            if cached_v.get('build_time') == build_time and os.path.exists(target_dir):
+                print("  Already up to date. Skipping download.")
+                versions_info.append(cached_v)
+                continue
         
         dl_url = find_asset(release)
         zip_path = f"{version_id}.zip"
@@ -208,10 +232,6 @@ def main():
         if os.path.exists('data'):
             shutil.rmtree('data')
         os.remove(zip_path)
-        
-        published_at = release.get('published_at', datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"))
-        dt = datetime.strptime(published_at, "%Y-%m-%dT%H:%M:%SZ")
-        build_time = dt.strftime("%Y-%m-%d %H:%M UTC")
         
         versions_info.append({
             "id": version_id,

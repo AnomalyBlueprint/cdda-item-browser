@@ -13,6 +13,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Checkout gh-pages for cache
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: public
+        continue-on-error: true
+      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
