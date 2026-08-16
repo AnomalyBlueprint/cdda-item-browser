@@ -1033,11 +1033,15 @@ function setOvText(title, sub) {
 }
 
 // ── Build entity list ─────────────────────────────────────────
+let entityMap = new Map(); // id → entity, for O(1) looks_like resolution
 function buildEntityList() {
   allEntities = [];
+  entityMap.clear();
   for (const [type, entries] of Object.entries(itemsDefs.types)) {
     for (const [id, def] of Object.entries(entries)) {
-      allEntities.push({id, type, name: def.n||id, sym: def.s||'?', color: def.c||'', looks_like: def.L||'', mod: def.mod||'__core__'});
+      const e = {id, type, name: def.n||id, sym: def.s||'?', color: def.c||'', looks_like: def.L||'', mod: def.mod||'__core__'};
+      allEntities.push(e);
+      entityMap.set(id, e);
     }
   }
   // Sort: type then name
@@ -1046,6 +1050,19 @@ function buildEntityList() {
     if (a.type > b.type) return 1;
     return (a.name||'').localeCompare(b.name||'');
   });
+}
+
+// ── Sprite resolver with looks_like fallback ──────────────────
+function getSprite(id, ts) {
+  if (!spriteIdx[ts]) return null;
+  let cur = id;
+  for (let depth = 0; depth < 6; depth++) {
+    if (spriteIdx[ts][cur]) return spriteIdx[ts][cur];
+    const e = entityMap.get(cur);
+    if (!e || !e.looks_like) return null;
+    cur = e.looks_like;
+  }
+  return null;
 }
 
 
@@ -1111,7 +1128,7 @@ function updateCountRow() {
     if (!spriteIdx[ts]) { el.textContent = '0'; continue; }
     let count = 0;
     for (const e of filteredEntities) {
-      if (spriteIdx[ts][e.id]) count++;
+      if (getSprite(e.id, ts)) count++;
     }
     el.textContent = count.toLocaleString();
   }
@@ -1195,7 +1212,7 @@ function buildTableRows(slice) {
 
     // Sprite cols (lazy)
     for (const ts of TILESETS) {
-      const sp = spriteIdx[ts] ? spriteIdx[ts][e.id] : null;
+      const sp = getSprite(e.id, ts);
       if (sp) {
         html += `<td class="td-sprite">
           <div class="sprite-canvas-wrap" 
@@ -1354,7 +1371,7 @@ function renderGrid() {
     if (typeF && e.type !== typeF) return false;
     if (searchF && !e.name.toLowerCase().includes(searchF) && !e.id.toLowerCase().includes(searchF)) return false;
     if (onlySprite && ts !== '__ascii__') {
-      if (!spriteIdx[ts]?.[e.id]) return false;
+      if (!getSprite(e.id, ts)) return false;
     }
     return true;
   });
@@ -1399,7 +1416,7 @@ function appendGridBatch(ts) {
 
   for (let i = gridRendered; i < end; i++) {
     const e   = gridFiltered[i];
-    const sp  = ts !== '__ascii__' && spriteIdx[ts] ? spriteIdx[ts][e.id] : null;
+    const sp  = ts !== '__ascii__' ? getSprite(e.id, ts) : null;
     const card = document.createElement('div');
     card.className = 'grid-card';
     card.style.width  = cardSize + 'px';
@@ -1604,7 +1621,7 @@ function openExamine(ent) {
     `<div class="ex-ts-label">ASCII</div></div>`;
   // Tileset cards
   for (const ts of TILESETS) {
-    const sp    = spriteIdx[ts]?.[ent.id];
+    const sp    = getSprite(ent.id, ts);
     const short = TS_SHORT[ts] || ts;
     if (sp) {
       html += `<div class="ex-ts-card has-sprite">`+
