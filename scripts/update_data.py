@@ -98,8 +98,8 @@ def generate_sprite_index(gfx_dir, target_dir):
                     fg = tile.get('fg', 0)
                     bg = tile.get('bg', 0)
                     
-                    if isinstance(fg, list): fg = fg[0]
-                    if isinstance(bg, list): bg = bg[0]
+                    if isinstance(fg, list): fg = fg[0] if len(fg) > 0 else 0
+                    if isinstance(bg, list): bg = bg[0] if len(bg) > 0 else 0
                     
                     if isinstance(fg, dict): fg = fg.get('weight', 0) or 0
                     
@@ -161,7 +161,7 @@ def main():
         try:
             with zipfile.ZipFile(zip_path, 'r') as z:
                 for file in z.namelist():
-                    if '/data/json/' in file or '/gfx/' in file:
+                    if 'data/json/' in file or 'gfx/' in file:
                         z.extract(file, extract_dir)
         except Exception as e:
             print(f"  Failed to extract zip: {e}")
