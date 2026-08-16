@@ -1405,8 +1405,11 @@ let animTicker = 0;
 setInterval(() => {
   if (animatedSprites.length === 0) return;
   animTicker++;
+  
+  // Clean up detached canvases
+  animatedSprites = animatedSprites.filter(s => s.ctx.canvas.isConnected);
+  
   for (const s of animatedSprites) {
-    if (!s.ctx.canvas.isConnected) continue; // Skip detached
     s.ctx.clearRect(0, 0, s.sz, s.sz);
     const bgIdx = s.bg.length ? s.bg[animTicker % s.bg.length] : null;
     const fgIdx = s.fg.length ? s.fg[animTicker % s.fg.length] : null;
@@ -1718,8 +1721,9 @@ function observeGridCanvas(canvas) {
 }
 
 async function drawGridCanvas(canvas) {
-  const fg    = canvas.dataset.fg !== '' ? parseInt(canvas.dataset.fg) : null;
-  const bg    = canvas.dataset.bg !== '' ? parseInt(canvas.dataset.bg) : null;
+  const parseIds = str => (str !== '' ? str.split(',').map(n => parseInt(n)) : []);
+  const fgList = parseIds(canvas.dataset.fg);
+  const bgList = parseIds(canvas.dataset.bg);
   const start = parseInt(canvas.dataset.start);
   const sw    = parseInt(canvas.dataset.sw);
   const sh    = parseInt(canvas.dataset.sh);
@@ -1731,8 +1735,19 @@ async function drawGridCanvas(canvas) {
     if (!img?.complete || !img.naturalWidth) return;
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
-    if (bg !== null) drawFrame(ctx, img, bg, start, sw, sh, 0, 0, size, size);
-    if (fg !== null) drawFrame(ctx, img, fg, start, sw, sh, 0, 0, size, size);
+    
+    if (bgList.length <= 1 && fgList.length <= 1) {
+      const bgIdx = bgList.length ? bgList[0] : null;
+      const fgIdx = fgList.length ? fgList[0] : null;
+      if (bgIdx !== null) drawFrame(ctx, img, bgIdx, start, sw, sh, 0, 0, size, size);
+      if (fgIdx !== null) drawFrame(ctx, img, fgIdx, start, sw, sh, 0, 0, size, size);
+    } else {
+      animatedSprites.push({ ctx, img, bg: bgList, fg: fgList, st: start, sw: sw, sh: sh, sz: size });
+      const bgIdx = bgList.length ? bgList[0] : null;
+      const fgIdx = fgList.length ? fgList[0] : null;
+      if (bgIdx !== null) drawFrame(ctx, img, bgIdx, start, sw, sh, 0, 0, size, size);
+      if (fgIdx !== null) drawFrame(ctx, img, fgIdx, start, sw, sh, 0, 0, size, size);
+    }
   } catch(e) {}
 }
 
@@ -1865,8 +1880,9 @@ function openExamine(ent) {
 }
 
 async function drawExamineCanvas(canvas) {
-  const fg    = canvas.dataset.fg !== '' ? parseInt(canvas.dataset.fg) : null;
-  const bgI   = canvas.dataset.bg !== '' ? parseInt(canvas.dataset.bg) : null;
+  const parseIds = str => (str !== '' ? str.split(',').map(n => parseInt(n)) : []);
+  const fgList = parseIds(canvas.dataset.fg);
+  const bgList = parseIds(canvas.dataset.bg);
   const start = parseInt(canvas.dataset.start);
   const sw    = parseInt(canvas.dataset.sw);
   const sh    = parseInt(canvas.dataset.sh);
@@ -1875,8 +1891,19 @@ async function drawExamineCanvas(canvas) {
     if (!img?.complete || !img.naturalWidth) return;
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
-    if (bgI !== null) drawFrame(ctx, img, bgI, start, sw, sh, 0, 0, 48, 48);
-    if (fg  !== null) drawFrame(ctx, img, fg,  start, sw, sh, 0, 0, 48, 48);
+
+    if (bgList.length <= 1 && fgList.length <= 1) {
+      const bgIdx = bgList.length ? bgList[0] : null;
+      const fgIdx = fgList.length ? fgList[0] : null;
+      if (bgIdx !== null) drawFrame(ctx, img, bgIdx, start, sw, sh, 0, 0, 48, 48);
+      if (fgIdx !== null) drawFrame(ctx, img, fgIdx, start, sw, sh, 0, 0, 48, 48);
+    } else {
+      animatedSprites.push({ ctx, img, bg: bgList, fg: fgList, st: start, sw: sw, sh: sh, sz: 48 });
+      const bgIdx = bgList.length ? bgList[0] : null;
+      const fgIdx = fgList.length ? fgList[0] : null;
+      if (bgIdx !== null) drawFrame(ctx, img, bgIdx, start, sw, sh, 0, 0, 48, 48);
+      if (fgIdx !== null) drawFrame(ctx, img, fgIdx, start, sw, sh, 0, 0, 48, 48);
+    }
   } catch(_) {}
 }
 
