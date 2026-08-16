@@ -355,6 +355,17 @@ input[type=text]::placeholder{color:var(--t3);}
   font-family:'JetBrains Mono',monospace;
 }
 
+/* Sprite skeleton loader */
+@keyframes skel-pulse {
+  0%,100% { opacity:.18; }
+  50%      { opacity:.38; }
+}
+.sprite-skel {
+  width:34px;height:34px;border-radius:4px;
+  background:var(--b2);
+  animation:skel-pulse 1.4s ease-in-out infinite;
+}
+
 /* Section group header */
 .tr-section{
   background:var(--card);
@@ -757,8 +768,8 @@ input[type=text]::placeholder{color:var(--t3);}
       <div class="ctrl-group">
         <span class="ctrl-label">Rows</span>
         <div class="page-size-btns">
-          <div class="psz-btn" onclick="setPageSize(50)"  id="psz50">50</div>
-          <div class="psz-btn on" onclick="setPageSize(100)" id="psz100">100</div>
+          <div class="psz-btn on" onclick="setPageSize(50)"  id="psz50">50</div>
+          <div class="psz-btn" onclick="setPageSize(100)" id="psz100">100</div>
           <div class="psz-btn" onclick="setPageSize(250)" id="psz250">250</div>
           <div class="psz-btn" onclick="setPageSize(0)"   id="psz0">∞</div>
         </div>
@@ -915,7 +926,7 @@ let filteredEntities = [];
 
 // Table state
 let tablePage   = 0;
-let pageSize    = 100;
+let pageSize    = 50;
 
 // Grid state
 let gridPage    = 0;
@@ -1255,38 +1266,34 @@ function setupSpriteObserver() {
 }
 
 async function renderSpriteCell(wrap) {
-  const {ts, id, fg, bg, si, start, sw, sh, file} = wrap.dataset;
-  const tsName = ts;
+  const {fg, bg, start, sw, sh, file} = wrap.dataset;
   const fgIdx  = fg !== '' ? parseInt(fg) : null;
   const bgIdx  = bg !== '' ? parseInt(bg) : null;
-  const secIdx = parseInt(si);
   const startI = parseInt(start);
   const sprW   = parseInt(sw);
   const sprH   = parseInt(sh);
-  const imgSrc = file;
 
   const cellSize = 36;
-  const canvas = document.createElement('canvas');
-  canvas.width  = cellSize;
-  canvas.height = cellSize;
-  wrap.appendChild(canvas);
+
+  // Show skeleton immediately
+  const skel = document.createElement('div');
+  skel.className = 'sprite-skel';
+  wrap.appendChild(skel);
 
   try {
-    const img = await loadImg(imgSrc);
-    if (!img?.complete || !img.naturalWidth) return;
+    const img = await loadImg(file);
+    if (!img?.complete || !img.naturalWidth) { skel.remove(); return; }
 
+    const canvas = document.createElement('canvas');
+    canvas.width  = cellSize;
+    canvas.height = cellSize;
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
+    if (bgIdx !== null) drawFrame(ctx, img, bgIdx, startI, sprW, sprH, 0, 0, cellSize, cellSize);
+    if (fgIdx !== null) drawFrame(ctx, img, fgIdx, startI, sprW, sprH, 0, 0, cellSize, cellSize);
 
-    // Draw background sprite first
-    if (bgIdx !== null) {
-      drawFrame(ctx, img, bgIdx, startI, sprW, sprH, 0, 0, cellSize, cellSize);
-    }
-    // Draw foreground sprite
-    if (fgIdx !== null) {
-      drawFrame(ctx, img, fgIdx, startI, sprW, sprH, 0, 0, cellSize, cellSize);
-    }
-  } catch(e) {}
+    skel.replaceWith(canvas);
+  } catch(e) { skel.remove(); }
 }
 
 function drawFrame(ctx, img, idx, startIdx, sprW, sprH, dx, dy, dW, dH) {
