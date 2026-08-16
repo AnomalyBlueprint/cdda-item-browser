@@ -1,5 +1,11 @@
 [
   {
+    "id": "latest_stable",
+    "name": "Ito",
+    "path": "versions/latest_stable/",
+    "build_time": "2026-06-06 16:41 UTC"
+  },
+  {
     "id": "cdda-experimental-2026-08-16-0340",
     "name": "Cataclysm-DDA experimental build 2026-08-16-0340",
     "path": "versions/cdda-experimental-2026-08-16-0340/",
