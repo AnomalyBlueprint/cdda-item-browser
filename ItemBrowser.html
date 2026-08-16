@@ -1510,6 +1510,7 @@ function renderGrid() {
       if (spriteF === 'has' && (!spr || spr.isFallback)) return false;
       if (spriteF === 'fb' && (!spr || !spr.isFallback)) return false;
       if (spriteF === 'any' && !spr) return false;
+      if (spriteF === 'missing' && spr) return false;
     }
     return true;
   });

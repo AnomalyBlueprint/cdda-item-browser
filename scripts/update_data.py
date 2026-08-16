@@ -101,7 +101,8 @@ def generate_sprite_index(gfx_dir, target_dir):
                     if isinstance(fg, list): fg = fg[0] if len(fg) > 0 else 0
                     if isinstance(bg, list): bg = bg[0] if len(bg) > 0 else 0
                     
-                    if isinstance(fg, dict): fg = fg.get('weight', 0) or 0
+                    if isinstance(fg, dict): fg = fg.get('sprite', 0) or 0
+                    if isinstance(bg, dict): bg = bg.get('sprite', 0) or 0
                     
                     for i in ids:
                         # Sometimes CDDA puts nested arrays or dicts, if so just cast to string or 0
