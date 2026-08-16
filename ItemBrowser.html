@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CDDA Item & Sprite Browser</title>
 <meta name="description" content="Browse all Cataclysm: Dark Days Ahead items, terrain, furniture, monsters and their sprites across every tileset.">
+<meta property="og:title" content="CDDA Item & Sprite Browser">
+<meta property="og:description" content="Browse 14,000+ CDDA items, terrain, furniture, monsters and their sprites across 11 tilesets.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#4ade80">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧟</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ══════════════════════════════════════════════════
@@ -703,14 +708,13 @@ input[type=text]::placeholder{color:var(--t3);}
   
   <div class="ctrl-group" style="margin-left:24px;">
     <span class="ctrl-label" style="color:var(--green)">Version</span>
-    <select id="versionSelect" onchange="changeVersion()" style="border-color:var(--green);font-weight:600"></select>
+    <select id="versionSelect" disabled onchange="changeVersion()" style="border-color:var(--green);font-weight:600"></select>
   </div>
   
   <div class="hchips">
-    <div class="chip" id="chipBuildWrap" style="display:none">Build: <b id="chipBuild">…</b></div>
+    <div class="chip" id="chipBuildWrap" style="display:none">🕒 <b id="chipBuild">…</b></div>
     <div class="chip"><b id="chipItems">…</b> items</div>
     <div class="chip"><b id="chipTypes">…</b> types</div>
-    <div class="chip"><b id="chipMods">…</b> mods</div>
     <div class="chip"><b id="chipTilesets">11</b> tilesets</div>
   </div>
 </header>
@@ -913,15 +917,11 @@ let filteredEntities = [];
 let tablePage   = 0;
 let pageSize    = 100;
 
-// Grid state  
+// Grid state
 let gridPage    = 0;
-const GRID_CHUNK= 200;
 
 // Active tab
 let activeTab   = 0;
-
-// Tileset sheets config (parsed tile_config.json data)
-let tsSheets    = {};   // tilesetName → {tileW, tileH, sections:[{file,sprW,sprH,startIdx}]}
 
 // Which tilesets to show as columns in table
 const TILESETS = [
@@ -949,10 +949,11 @@ let currentVersionPath = '';
 
 async function changeVersion() {
   const vSel = document.getElementById('versionSelect');
-  if (vSel) localStorage.setItem('cddaBrowserVersion', vSel.value);
+  if (vSel) { localStorage.setItem('cddaBrowserVersion', vSel.value); vSel.disabled = true; }
   document.getElementById('globalOverlay').classList.remove('hidden');
   imgCache.clear();
   await boot();
+  if (vSel) vSel.disabled = false;
 }
 
 async function boot() {
@@ -1002,13 +1003,9 @@ async function boot() {
     buildEntityList();
     setProgress(85);
 
-    // Populate mods dropdowns
-    populateModDropdowns();
-
     // Update header chips
-    document.getElementById('chipItems').textContent    = allEntities.length.toLocaleString();
-    document.getElementById('chipTypes').textContent    = Object.keys(itemsDefs.types).length;
-    document.getElementById('chipMods').textContent     = itemsDefs.mods.length;
+    document.getElementById('chipItems').textContent = allEntities.length.toLocaleString();
+    document.getElementById('chipTypes').textContent = Object.keys(itemsDefs.types).length;
 
     // Build table columns header
     buildTableHeader();
@@ -1017,10 +1014,12 @@ async function boot() {
 
     setTimeout(() => {
       document.getElementById('globalOverlay').classList.add('hidden');
+      document.getElementById('versionSelect').disabled = false;
     }, 300);
 
   } catch(e) {
     setOvText('Boot failed ⚠️', e.message + ' — serve via HTTP (python3 -m http.server)');
+    document.getElementById('versionSelect').disabled = false;
   }
 }
 
@@ -1049,34 +1048,7 @@ function buildEntityList() {
   });
 }
 
-// ── Populate mod dropdowns ────────────────────────────────────
-function populateModDropdowns() {
-  const mods = itemsDefs.mods;
 
-  // Sort: core first, then alphabetically by display name
-  const sorted = [...mods].sort((a, b) => {
-    const aCore = (a.category === 'core');
-    const bCore = (b.category === 'core');
-    if (aCore && !bCore) return -1;
-    if (!aCore && bCore) return 1;
-    return (a.name || a.id).localeCompare(b.name || b.id);
-  });
-
-  let html = '<option value="">All Mods</option>';
-  // Separator before non-core mods
-  let pastCore = false;
-  for (const m of sorted) {
-    if (!pastCore && m.category !== 'core') {
-      html += '<option disabled>──────────</option>';
-      pastCore = true;
-    }
-    const prefix = m.category === 'core' ? '⚙ ' : '📦 ';
-    html += `<option value="${esc(m.id)}">${prefix}${esc(m.name || m.id)}</option>`;
-  }
-
-  document.getElementById('modFilter').innerHTML = html;
-  document.getElementById('gridModFilter').innerHTML = html;
-}
 
 // ── Build table header columns ────────────────────────────────
 function buildTableHeader() {
@@ -1111,12 +1083,10 @@ function buildTableHeader() {
 // ── Filter logic ──────────────────────────────────────────────
 function applyFilters() {
   const typeF   = document.getElementById('typeFilter').value;
-  const modF    = document.getElementById('modFilter').value;
   const searchF = document.getElementById('searchFilter').value.toLowerCase().trim();
 
   filteredEntities = allEntities.filter(e => {
     if (typeF   && e.type !== typeF) return false;
-    if (modF    && e.mod  !== modF)  return false;
     if (searchF && !e.name.toLowerCase().includes(searchF) && !e.id.toLowerCase().includes(searchF)) return false;
     return true;
   });
@@ -1147,8 +1117,6 @@ function updateCountRow() {
   }
 }
 
-// (applyModFilter removed — Section/Category dropdowns replaced with flat Mod dropdown)
-
 // ── Set page size ─────────────────────────────────────────────
 function setPageSize(n) {
   pageSize = n;
@@ -1175,13 +1143,14 @@ function renderTable() {
 
   // Group by type within current page
   const rows = buildTableRows(slice);
-  document.getElementById('tableBody').innerHTML = rows;
-
-  // Render ASCII cells
-  renderASCIICells();
-
-  // Lazy-render sprite cells as they scroll into view
-  setupSpriteObserver();
+  const tbody = document.getElementById('tableBody');
+  if (slice.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${2+TILESETS.length}" style="text-align:center;padding:48px;color:var(--t3);font-size:12px;">🔍 No results found</td></tr>`;
+  } else {
+    tbody.innerHTML = rows;
+    // Lazy-render sprite cells as they scroll into view
+    setupSpriteObserver();
+  }
 
   renderPager(total, ps, start, end);
   // Scroll to top
@@ -1245,11 +1214,6 @@ function buildTableRows(slice) {
     html += '</tr>';
   }
   return html;
-}
-
-// ── ASCII cell rendering ──────────────────────────────────────
-function renderASCIICells() {
-  // Already rendered via inline HTML
 }
 
 // ── Sprite lazy loading via IntersectionObserver ─────────────
@@ -1383,13 +1347,11 @@ const GRID_BATCH  = 150;
 function renderGrid() {
   const ts        = document.getElementById('gridTilesetSel').value;
   const typeF     = document.getElementById('gridTypeFilter').value;
-  const modF      = document.getElementById('gridModFilter').value;
   const searchF   = document.getElementById('gridSearch').value.toLowerCase().trim();
   const onlySprite= document.getElementById('gridOnlySprite').checked;
 
   gridFiltered = allEntities.filter(e => {
     if (typeF && e.type !== typeF) return false;
-    if (modF  && e.mod  !== modF)  return false;
     if (searchF && !e.name.toLowerCase().includes(searchF) && !e.id.toLowerCase().includes(searchF)) return false;
     if (onlySprite && ts !== '__ascii__') {
       if (!spriteIdx[ts]?.[e.id]) return false;
@@ -1565,10 +1527,6 @@ function applyGridSize() {
 // ── Helpers ───────────────────────────────────────────────────
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function getModName(modId) {
-  const m = itemsDefs?.mods?.find(m => m.id === modId);
-  return m ? m.name : modId;
 }
 
 // ══ EXAMINE MODAL ════════════════════════════════════════════
