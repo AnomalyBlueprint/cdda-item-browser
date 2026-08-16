@@ -1,0 +1,1721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CDDA Item & Sprite Browser</title>
+<meta name="description" content="Browse all Cataclysm: Dark Days Ahead items, terrain, furniture, monsters and their sprites across every tileset.">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════
+   DESIGN TOKENS
+══════════════════════════════════════════════════ */
+:root {
+  --bg:      #080b10;
+  --panel:   #0d1117;
+  --card:    #131923;
+  --hover:   #1a2233;
+  --active:  #0e2a1a;
+
+  --green:   #4ade80;
+  --gdim:    #22c55e22;
+  --gglow:   #4ade8040;
+  --green2:  #22c55e;
+
+  --blue:    #60a5fa;
+  --bdim:    #3b82f622;
+  --purple:  #a78bfa;
+  --pdim:    #7c3aed22;
+  --amber:   #fbbf24;
+  --adim:    #f59e0b22;
+  --red:     #f87171;
+  --rdim:    #ef444422;
+  --cyan:    #22d3ee;
+  --cdim:    #06b6d422;
+
+  --t1:    #e2e8f0;
+  --t2:    #94a3b8;
+  --t3:    #475569;
+  --t4:    #2d3a4f;
+
+  --border:#1a2236;
+  --b2:    #243048;
+  --r:     12px;
+  --rs:    7px;
+
+  --ts-h:  52px;  /* tab bar height */
+  --hdr-h: 54px;  /* header height */
+}
+
+/* ── Reset & Base ────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--bg);
+  color:var(--t1);
+  height:100vh;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+
+/* Subtle grid bg */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    linear-gradient(rgba(74,222,128,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(74,222,128,.025) 1px,transparent 1px);
+  background-size:44px 44px;
+}
+
+/* ── Header ─────────────────────────────── */
+header{
+  position:relative;z-index:20;
+  height:var(--hdr-h);
+  padding:0 22px;
+  border-bottom:1px solid var(--border);
+  background:#0a0f16ee;
+  backdrop-filter:blur(12px);
+  display:flex;align-items:center;gap:14px;
+  flex-shrink:0;
+}
+.logo{
+  font-family:'JetBrains Mono',monospace;
+  font-size:16px;font-weight:700;
+  color:var(--green);
+  text-shadow:0 0 24px var(--gglow);
+}
+.logo .sep{color:var(--t3);font-weight:400;}
+.pill{
+  padding:2px 9px;border-radius:99px;
+  background:var(--gdim);border:1px solid var(--green2)44;
+  color:var(--green);font-size:9px;font-weight:700;letter-spacing:.6px;
+}
+.hchips{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;}
+.chip{
+  padding:3px 10px;border-radius:99px;
+  background:var(--card);border:1px solid var(--b2);
+  font-size:10px;color:var(--t2);
+  font-family:'JetBrains Mono',monospace;
+}
+.chip b{color:var(--blue);}
+#loadProgress{
+  position:fixed;top:0;left:0;height:2px;
+  background:linear-gradient(90deg,var(--green),var(--blue));
+  width:0%;transition:width .3s;z-index:100;
+}
+
+/* ── Tab Bar ─────────────────────────────── */
+.tabbar{
+  position:relative;z-index:15;
+  height:var(--ts-h);
+  border-bottom:1px solid var(--border);
+  background:var(--panel);
+  display:flex;align-items:stretch;
+  flex-shrink:0;
+}
+.tab-btn{
+  padding:0 24px;
+  display:flex;align-items:center;gap:8px;
+  font-size:12px;font-weight:600;
+  color:var(--t3);cursor:pointer;
+  border-bottom:2px solid transparent;
+  transition:all .18s;
+  user-select:none;
+  position:relative;
+}
+.tab-btn:hover{color:var(--t2);background:var(--hover);}
+.tab-btn.active{
+  color:var(--green);
+  border-bottom-color:var(--green);
+  background:var(--gdim);
+}
+.tab-icon{font-size:14px;}
+
+/* ── Main Layout (fills remaining height) ── */
+.app-body{
+  position:relative;z-index:1;
+  flex:1;
+  overflow:hidden;
+  display:flex;flex-direction:column;
+}
+.tab-panel{display:none;flex:1;overflow:hidden;flex-direction:column;}
+.tab-panel.active{display:flex;}
+
+/* ══════════════════════════════════════════════════
+   TAB 1: SPRITE TABLE
+══════════════════════════════════════════════════ */
+/* ── Controls bar ────────────────────────── */
+.ctrl-bar{
+  padding:8px 14px;
+  border-bottom:1px solid var(--border);
+  background:var(--panel);
+  display:flex;align-items:center;gap:8px;
+  flex-wrap:wrap;
+  flex-shrink:0;
+}
+.ctrl-group{display:flex;align-items:center;gap:5px;}
+.ctrl-label{
+  font-size:9px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.8px;color:var(--t3);white-space:nowrap;
+}
+select,input[type=text]{
+  appearance:none;
+  background:var(--card);
+  border:1px solid var(--b2);
+  border-radius:var(--rs);
+  color:var(--t1);
+  font-size:11px;
+  outline:none;
+  transition:border-color .15s,box-shadow .15s;
+}
+select{
+  padding:5px 26px 5px 9px;
+  cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 8px center;
+}
+select:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--bdim);}
+input[type=text]{padding:5px 10px;}
+input[type=text]:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--gglow);}
+input[type=text]::placeholder{color:var(--t3);}
+.btn{
+  padding:5px 12px;border-radius:var(--rs);
+  border:1px solid var(--b2);background:var(--card);
+  color:var(--t2);font-size:10px;font-weight:600;
+  cursor:pointer;transition:all .12s;
+  font-family:'Inter',sans-serif;
+}
+.btn:hover{background:var(--hover);color:var(--t1);border-color:var(--green);}
+.btn.on{background:var(--gdim);border-color:var(--green);color:var(--green);}
+
+.page-size-btns{display:flex;gap:3px;}
+.psz-btn{
+  padding:4px 9px;border-radius:var(--rs);border:1px solid var(--b2);
+  background:var(--card);color:var(--t3);font-size:10px;cursor:pointer;
+  transition:all .1s;font-family:'JetBrains Mono',monospace;
+}
+.psz-btn:hover{background:var(--hover);color:var(--t1);}
+.psz-btn.on{background:var(--gdim);border-color:var(--green);color:var(--green);}
+
+.stat-badge{
+  margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;
+  color:var(--t3);
+}
+.stat-badge b{color:var(--green);}
+
+/* ── Sticky Table ────────────────────────── */
+.table-wrap{
+  flex:1;overflow:auto;
+  position:relative;
+}
+.table-wrap::-webkit-scrollbar{width:5px;height:5px;}
+.table-wrap::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px;}
+
+#spriteTable{
+  width:100%;
+  border-collapse:separate;
+  border-spacing:0;
+  table-layout:fixed;
+  font-size:11px;
+}
+#spriteTable thead tr{
+  /* sticky is handled per-cell below, not per-row */
+}
+/* Col 0: Name */
+#spriteTable colgroup col:first-child{width:220px;}
+/* Col 1: ASCII */
+#spriteTable colgroup col:nth-child(2){width:80px;}
+/* other cols */
+
+.th-name{
+  background:var(--panel);
+  border-bottom:2px solid var(--border);
+  padding:7px 10px;
+  text-align:left;
+  font-weight:700;font-size:10px;text-transform:uppercase;
+  letter-spacing:.6px;color:var(--t2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  position:sticky;top:0;z-index:12;
+}
+.th-name.col-item{color:var(--green);width:220px;}
+.th-ts{
+  background:var(--panel);
+  border-bottom:2px solid var(--border);
+  border-left:1px solid var(--border);
+  padding:5px 6px;
+  text-align:center;
+  font-size:9px;font-weight:700;color:var(--t2);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  position:sticky;top:0;z-index:12;
+}
+.th-ascii{background:var(--panel);border-bottom:2px solid var(--border);border-left:1px solid var(--b2);padding:5px 6px;text-align:center;font-size:9px;font-weight:700;color:var(--amber);position:sticky;top:0;z-index:12;width:80px;}
+
+/* Sub-header row: count row — sticky handled per-cell */
+.tc-name{
+  background:var(--panel);
+  padding:3px 10px;
+  font-size:9px;color:var(--t3);
+  font-family:'JetBrains Mono',monospace;
+  border-bottom:1px solid var(--border);
+  position:sticky;top:27px;z-index:11;
+}
+.tc-count{
+  background:var(--panel);
+  border-left:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+  text-align:center;
+  font-size:9px;color:var(--blue);
+  font-family:'JetBrains Mono',monospace;
+  padding:3px 4px;
+  position:sticky;top:27px;z-index:11;
+}
+.tc-ascii-count{
+  background:var(--panel);
+  border-left:1px solid var(--b2);
+  border-bottom:1px solid var(--border);
+  text-align:center;font-size:9px;
+  color:var(--amber);font-family:'JetBrains Mono',monospace;
+  padding:3px 4px;
+  position:sticky;top:27px;z-index:11;
+}
+
+/* Data rows */
+.tr-item{
+  border-bottom:1px solid var(--border);
+  transition:background .08s;
+  cursor:pointer;
+}
+.tr-item:hover{background:var(--hover);}
+
+.td-name{
+  padding:5px 10px;
+  font-size:11px;color:var(--t1);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.td-name .etype{
+  font-size:8px;
+  color:var(--t3);
+  font-family:'JetBrains Mono',monospace;
+  display:block;line-height:1;
+}
+.td-name .eid{
+  font-size:9px;
+  color:var(--t3);
+  font-family:'JetBrains Mono',monospace;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  display:block;
+}
+.td-name .emod{
+  font-size:8px;color:var(--purple);
+  font-family:'JetBrains Mono',monospace;
+}
+.td-ascii{
+  border-left:1px solid var(--b2);
+  text-align:center;
+  padding:4px 2px;
+}
+.ascii-cell{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;
+  border-radius:4px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:16px;font-weight:700;
+  cursor:default;
+  transition:transform .1s,filter .1s;
+}
+.ascii-cell:hover{transform:scale(1.3);filter:brightness(1.4);z-index:1;position:relative;}
+
+.td-sprite{
+  border-left:1px solid var(--border);
+  text-align:center;
+  padding:3px 2px;
+  vertical-align:middle;
+}
+.sprite-canvas-wrap{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;
+}
+.sprite-canvas-wrap canvas{
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+  border-radius:3px;
+}
+.sprite-miss{
+  font-size:8px;color:var(--t4);
+  font-family:'JetBrains Mono',monospace;
+}
+
+/* Section group header */
+.tr-section{
+  background:var(--card);
+  border-bottom:1px solid var(--border);
+}
+.td-section{
+  padding:5px 10px;
+  font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.8px;
+  color:var(--purple);
+  font-family:'JetBrains Mono',monospace;
+}
+
+/* Pagination bar */
+.pager{
+  padding:8px 14px;
+  border-top:1px solid var(--border);
+  background:var(--panel);
+  display:flex;align-items:center;gap:8px;
+  font-size:10px;color:var(--t2);
+  flex-shrink:0;
+}
+.pager-btns{display:flex;gap:4px;}
+.pbtn{
+  padding:4px 10px;border-radius:var(--rs);border:1px solid var(--b2);
+  background:var(--card);color:var(--t2);font-size:10px;cursor:pointer;
+  transition:all .1s;font-family:'JetBrains Mono',monospace;
+}
+.pbtn:hover:not(:disabled){background:var(--hover);color:var(--t1);}
+.pbtn:disabled{opacity:.35;cursor:default;}
+.pbtn.cur{background:var(--gdim);border-color:var(--green);color:var(--green);}
+.pager-info{margin-left:auto;font-family:'JetBrains Mono',monospace;color:var(--t3);}
+.pager-info b{color:var(--t2);}
+
+/* ══════════════════════════════════════════════════
+   TAB 2: GRID VIEW
+══════════════════════════════════════════════════ */
+.grid-ctrl{
+  padding:8px 14px;
+  border-bottom:1px solid var(--border);
+  background:var(--panel);
+  display:flex;align-items:center;gap:8px;
+  flex-wrap:wrap;flex-shrink:0;
+}
+.grid-body{
+  flex:1;overflow:auto;
+  padding:14px;
+  display:flex;flex-wrap:wrap;
+  align-content:flex-start;
+  gap:6px;
+}
+.grid-body::-webkit-scrollbar{width:5px;}
+.grid-body::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px;}
+
+.grid-card{
+  width:72px;
+  border:1px solid var(--border);
+  border-radius:var(--rs);
+  background:var(--card);
+  display:flex;flex-direction:column;
+  align-items:center;gap:3px;
+  padding:5px 3px 4px;
+  cursor:pointer;
+  transition:border-color .12s,background .12s,transform .1s;
+  overflow:hidden;
+  position:relative;
+}
+.grid-card:hover{
+  border-color:var(--green);
+  background:var(--active);
+  transform:translateY(-2px);
+  z-index:2;
+}
+.grid-card .gc-sprite{
+  width:40px;height:40px;
+  display:flex;align-items:center;justify-content:center;
+}
+.grid-card .gc-sprite canvas{
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+}
+.grid-card .gc-ascii-cell{
+  width:40px;height:40px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:5px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:20px;font-weight:700;
+}
+.grid-card .gc-name{
+  font-size:8.5px;color:var(--t2);
+  text-align:center;line-height:1.2;
+  width:100%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  padding:0 2px;
+}
+.grid-card .gc-type{
+  font-size:7px;color:var(--t3);
+  font-family:'JetBrains Mono',monospace;
+}
+.grid-sentinel{height:1px;width:100%;flex-basis:100%;}
+
+/* Grid load-more */
+.grid-loadmore{
+  width:100%;text-align:center;padding:12px;
+  color:var(--blue);font-size:11px;cursor:pointer;
+}
+.grid-loadmore:hover{color:var(--t1);}
+
+/* ── Tooltip ─────────────────────────────── */
+#tooltip{
+  position:fixed;z-index:999;
+  background:var(--panel);
+  border:1px solid var(--b2);
+  border-radius:var(--rs);
+  padding:9px 13px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;color:var(--t1);
+  pointer-events:none;
+  opacity:0;transition:opacity .1s;
+  max-width:230px;
+  box-shadow:0 4px 24px #00000088;
+}
+#tooltip.show{opacity:1;}
+.tt-head{font-size:13px;font-weight:700;margin-bottom:4px;}
+.tt-row{font-size:9px;color:var(--t2);line-height:1.6;}
+.tt-row b{color:var(--green);}
+.tt-mod{font-size:8px;color:var(--purple);}
+
+/* ── Loading overlay ─────────────────────── */
+#globalOverlay{
+  position:fixed;inset:0;z-index:500;
+  background:#080b10cc;backdrop-filter:blur(6px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:14px;
+}
+#globalOverlay.hidden{display:none;}
+.ov-spinner{
+  width:36px;height:36px;border-radius:50%;
+  border:3px solid var(--b2);border-top-color:var(--green);
+  animation:spin .6s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ov-title{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--green);}
+.ov-sub{font-size:10px;color:var(--t3);font-family:'JetBrains Mono',monospace;max-width:360px;text-align:center;}
+.ov-bar{width:300px;height:4px;background:var(--b2);border-radius:2px;overflow:hidden;}
+.ov-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--blue));border-radius:2px;transition:width .2s;}
+
+/* ── Misc ────────────────────────────────── */
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:100%;padding:60px 20px;gap:10px;color:var(--t3);font-size:13px;
+}
+.empty-state .ei{font-size:36px;opacity:.3;}
+
+/* Type badge colors */
+.badge{
+  display:inline-block;padding:1px 6px;border-radius:99px;
+  font-size:8px;font-weight:700;font-family:'JetBrains Mono',monospace;
+  vertical-align:middle;margin-left:4px;
+}
+.badge-ITEM    {background:#3b82f622;color:#60a5fa;}
+.badge-terrain {background:#22c55e22;color:#4ade80;}
+.badge-furniture{background:#f59e0b22;color:#fbbf24;}
+.badge-MONSTER {background:#ef444422;color:#f87171;}
+.badge-vehicle_part{background:#7c3aed22;color:#a78bfa;}
+
+/* Scrollbar global */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:3px;}
+::-webkit-scrollbar-track{background:transparent;}
+
+/* ══ EXAMINE MODAL ════════════════════════════════════════════ */
+.examine-overlay{
+  position:fixed;inset:0;z-index:900;
+  background:rgba(8,11,16,.88);
+  backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.examine-overlay.hidden{display:none;}
+.examine-modal{
+  width:100%;max-width:800px;
+  max-height:calc(100vh - 40px);
+  background:var(--panel);
+  border:1px solid var(--b2);
+  border-radius:14px;
+  display:flex;flex-direction:column;
+  box-shadow:0 32px 96px #000000cc,0 0 0 1px var(--border);
+  overflow:hidden;
+  animation:examIn .18s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes examIn{
+  from{opacity:0;transform:scale(.95) translateY(10px);}
+  to  {opacity:1;transform:scale(1)   translateY(0);}
+}
+.ex-header{
+  padding:16px 18px 14px;
+  border-bottom:2px solid var(--border);
+  display:flex;align-items:flex-start;gap:14px;
+  background:linear-gradient(180deg,var(--card),var(--panel) 100%);
+  flex-shrink:0;
+}
+.ex-ascii-big{
+  width:56px;height:56px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;
+  font-size:28px;font-weight:700;
+  flex-shrink:0;border:1px solid rgba(255,255,255,.08);
+}
+.ex-title-block{flex:1;min-width:0;}
+.ex-name{font-size:18px;font-weight:700;color:var(--t1);line-height:1.2;}
+.ex-badges{
+  display:flex;gap:5px;margin-top:5px;
+  flex-wrap:wrap;align-items:center;
+}
+.ex-badge{
+  padding:2px 9px;border-radius:99px;
+  font-size:9px;font-weight:700;
+  font-family:'JetBrains Mono',monospace;letter-spacing:.5px;
+}
+.ex-id-line{
+  margin-top:4px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;color:var(--t3);
+}
+.ex-close{
+  width:30px;height:30px;border-radius:50%;
+  background:transparent;border:1px solid var(--border);
+  color:var(--t3);font-size:14px;cursor:pointer;
+  transition:all .12s;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.ex-close:hover{background:var(--rdim);border-color:var(--red);color:var(--red);}
+
+/* scrollable body */
+.ex-body{
+  flex:1;overflow-y:auto;
+  padding:16px 18px 24px;
+  display:flex;flex-direction:column;gap:16px;
+}
+.ex-body::-webkit-scrollbar{width:4px;}
+.ex-body::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
+
+/* section */
+.ex-section{display:flex;flex-direction:column;}
+.ex-section-hdr{
+  font-size:8px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--t3);
+  border-bottom:1px solid var(--border);
+  padding-bottom:5px;margin-bottom:10px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+
+/* sprites */
+.ex-sprites-row{display:flex;gap:6px;flex-wrap:wrap;}
+.ex-ts-card{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--rs);padding:7px;min-width:62px;
+}
+.ex-ts-label{
+  font-size:7px;color:var(--t3);
+  font-family:'JetBrains Mono',monospace;text-align:center;
+}
+.ex-ts-card.has-sprite{border-color:var(--green2)33;}
+.ex-ts-card.no-sprite{opacity:.3;}
+
+/* props */
+.ex-props{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  gap:8px 20px;
+}
+.ex-prop{display:flex;flex-direction:column;gap:2px;}
+.ex-prop-key{
+  font-size:8px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.6px;color:var(--t3);
+  font-family:'JetBrains Mono',monospace;
+}
+.ex-prop-val{
+  font-size:11px;color:var(--t1);
+  font-family:'JetBrains Mono',monospace;
+  word-break:break-all;line-height:1.4;
+}
+.val-arr{color:var(--purple);}
+.val-num{color:var(--blue);}
+.val-bool-t{color:var(--green);}
+.val-bool-f{color:var(--red);}
+
+/* raw json toggle */
+.ex-raw-toggle{
+  cursor:pointer;color:var(--blue);
+  font-size:9px;font-weight:700;
+  background:none;border:none;padding:0;
+  font-family:'JetBrains Mono',monospace;
+  letter-spacing:.5px;
+}
+.ex-raw-toggle:hover{color:var(--t1);}
+.ex-raw{
+  margin-top:8px;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:var(--rs);
+  padding:12px 14px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;color:var(--t2);
+  overflow:auto;max-height:280px;
+  white-space:pre;tab-size:2;
+}
+.ex-raw.hidden{display:none;}
+</style>
+</head>
+<body>
+
+<div id="loadProgress"></div>
+
+<!-- ═══ GLOBAL OVERLAY ═══ -->
+<div id="globalOverlay">
+  <div class="ov-spinner"></div>
+  <div class="ov-title" id="ovTitle">Loading CDDA Data…</div>
+  <div class="ov-sub"  id="ovSub">Fetching items_defs.json &amp; sprite_index.json</div>
+  <div class="ov-bar"><div class="ov-bar-fill" id="ovBarFill"></div></div>
+</div>
+
+<!-- ═══ HEADER ═══ -->
+<header>
+  <div class="logo">CDDA<span class="sep">/</span>Item<span class="sep">&</span>Sprite<span class="sep"> Browser</span></div>
+  <div class="pill">OPEN SOURCE</div>
+  
+  <div class="ctrl-group" style="margin-left:24px;">
+    <span class="ctrl-label" style="color:var(--green)">Version</span>
+    <select id="versionSelect" onchange="changeVersion()" style="border-color:var(--green);font-weight:600"></select>
+  </div>
+  
+  <div class="hchips">
+    <div class="chip" id="chipBuildWrap" style="display:none">Build: <b id="chipBuild">…</b></div>
+    <div class="chip"><b id="chipItems">…</b> items</div>
+    <div class="chip"><b id="chipTypes">…</b> types</div>
+    <div class="chip"><b id="chipMods">…</b> mods</div>
+    <div class="chip"><b id="chipTilesets">11</b> tilesets</div>
+  </div>
+</header>
+
+<!-- ═══ TAB BAR ═══ -->
+<div class="tabbar">
+  <div class="tab-btn active" id="tabBtn0" onclick="switchTab(0)">
+    <span class="tab-icon">📋</span> Sprite Table
+  </div>
+  <div class="tab-btn" id="tabBtn1" onclick="switchTab(1)">
+    <span class="tab-icon">🎨</span> Tileset Grid
+  </div>
+</div>
+
+<!-- ═══ APP BODY ═══ -->
+<div class="app-body">
+
+  <!-- ── TAB 0: SPRITE TABLE ───────────────── -->
+  <div class="tab-panel active" id="panel0">
+
+    <div class="ctrl-bar">
+      <!-- Type filter -->
+      <div class="ctrl-group">
+        <span class="ctrl-label">Type</span>
+        <select id="typeFilter" onchange="applyFilters()">
+          <option value="">All Types</option>
+          <option value="ITEM">🎒 Items</option>
+          <option value="terrain">🌿 Terrain</option>
+          <option value="furniture">🪑 Furniture</option>
+          <option value="MONSTER">👾 Monsters</option>
+          <option value="vehicle_part">🔧 Vehicle Parts</option>
+        </select>
+      </div>
+      <!-- Mod filter -->
+      <div class="ctrl-group">
+        <span class="ctrl-label">Mod</span>
+        <select id="modFilter" onchange="applyFilters()" style="max-width:200px">
+          <option value="">All Mods</option>
+        </select>
+      </div>
+      <!-- Search -->
+      <div class="ctrl-group">
+        <span class="ctrl-label">Search</span>
+        <input type="text" id="searchFilter" placeholder="name or id…" style="width:160px" oninput="applyFilters()">
+      </div>
+      <!-- Page size -->
+      <div class="ctrl-group">
+        <span class="ctrl-label">Rows</span>
+        <div class="page-size-btns">
+          <div class="psz-btn" onclick="setPageSize(50)"  id="psz50">50</div>
+          <div class="psz-btn on" onclick="setPageSize(100)" id="psz100">100</div>
+          <div class="psz-btn" onclick="setPageSize(250)" id="psz250">250</div>
+          <div class="psz-btn" onclick="setPageSize(0)"   id="psz0">∞</div>
+        </div>
+      </div>
+      <div class="stat-badge" id="tableStatBadge"><b>0</b> / 0</div>
+    </div>
+
+    <div class="table-wrap" id="tableWrap">
+      <table id="spriteTable">
+        <colgroup id="tableColGroup"></colgroup>
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="pager" id="pager">
+      <div class="pager-btns" id="pagerBtns"></div>
+      <div class="pager-info" id="pagerInfo"></div>
+    </div>
+  </div>
+
+  <!-- ── TAB 1: GRID VIEW ──────────────────── -->
+  <div class="tab-panel" id="panel1">
+    <div class="grid-ctrl">
+      <!-- Tileset selector -->
+      <div class="ctrl-group">
+        <span class="ctrl-label">Tileset</span>
+        <select id="gridTilesetSel" onchange="renderGrid()">
+          <option value="__ascii__">◈ ASCII (Color)</option>
+          <option value="UltimateCataclysm">🎨 UltimateCataclysm</option>
+          <option value="RetroDaysTileset">🎨 RetroDays</option>
+          <option value="MshockXotto+">🎨 MshockXotto+</option>
+          <option value="Cuteclysm">🎨 Cuteclysm</option>
+          <option value="HollowMoon">🎨 HollowMoon</option>
+          <option value="PenAndPaper">🎨 Pen &amp; Paper</option>
+          <option value="GiantDays">🎨 GiantDays</option>
+          <option value="ChibiUltica">🎨 ChibiUltica</option>
+          <option value="BrownLikeBears">🎨 BrownLikeBears</option>
+          <option value="NeoDaysTileset">🎨 NeoDays</option>
+          <option value="Altica">🎨 Alt Ultica</option>
+        </select>
+      </div>
+      <!-- Type filter -->
+      <div class="ctrl-group">
+        <span class="ctrl-label">Type</span>
+        <select id="gridTypeFilter" onchange="renderGrid()">
+          <option value="">All Types</option>
+          <option value="ITEM">🎒 Items</option>
+          <option value="terrain">🌿 Terrain</option>
+          <option value="furniture">🪑 Furniture</option>
+          <option value="MONSTER">👾 Monsters</option>
+          <option value="vehicle_part">🔧 Vehicle Parts</option>
+        </select>
+      </div>
+      <!-- Mod filter -->
+      <div class="ctrl-group">
+        <span class="ctrl-label">Mod</span>
+        <select id="gridModFilter" onchange="renderGrid()" style="max-width:200px">
+          <option value="">All Mods</option>
+        </select>
+      </div>
+      <!-- Search -->
+      <div class="ctrl-group">
+        <span class="ctrl-label">Search</span>
+        <input type="text" id="gridSearch" placeholder="filter…" style="width:140px" oninput="renderGrid()">
+      </div>
+      <!-- Only with sprite -->
+      <div class="ctrl-group">
+        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--t2)">
+          <input type="checkbox" id="gridOnlySprite" onchange="renderGrid()" style="accent-color:var(--green)">
+          Only with sprite
+        </label>
+      </div>
+      <!-- Card size -->
+      <div class="ctrl-group">
+        <span class="ctrl-label">Size</span>
+        <select id="gridCardSize" onchange="applyGridSize()">
+          <option value="56">Tiny</option>
+          <option value="72" selected>Small</option>
+          <option value="96">Medium</option>
+          <option value="128">Large</option>
+        </select>
+      </div>
+      <div class="stat-badge" id="gridStatBadge"><b>0</b> shown</div>
+    </div>
+
+    <div class="grid-body" id="gridBody"></div>
+  </div>
+
+</div>
+
+<!-- ═══ EXAMINE MODAL ═══ -->
+<div id="examineOverlay" class="examine-overlay hidden">
+  <div class="examine-modal">
+    <div class="ex-header">
+      <div class="ex-ascii-big" id="exAscii">?</div>
+      <div class="ex-title-block">
+        <div class="ex-name"    id="exName">—</div>
+        <div class="ex-badges"  id="exBadges"></div>
+        <div class="ex-id-line" id="exIdLine">—</div>
+      </div>
+      <button class="ex-close" onclick="closeExamine()" title="Close (Esc)">✕</button>
+    </div>
+    <div class="ex-body" id="exBody"></div>
+  </div>
+</div>
+
+<!-- ═══ TOOLTIP (legacy, hidden) ═══ -->
+<div id="tooltip" style="display:none"></div>
+
+<script>
+'use strict';
+/* ══════════════════════════════════════════════════════════════
+   CDDA Item & Sprite Browser
+   Data sources:
+     items_defs.json   — {types:{ITEM,terrain,furniture,MONSTER,vehicle_part}, mods:[…]}
+     sprite_index.json — {tilesetName: {id:{si,file,fg,bg,sw,sh,start}}}
+══════════════════════════════════════════════════════════════ */
+
+// ── CDDA color tables ─────────────────────────────────────────
+const CDDA_FG = {
+  black:'#1a1a1a', dark_gray:'#6b7280', blue:'#3b82f6', light_blue:'#60a5fa',
+  green:'#16a34a', light_green:'#4ade80', cyan:'#0891b2', light_cyan:'#22d3ee',
+  red:'#dc2626',   light_red:'#f87171', magenta:'#9333ea', pink:'#e879f9',
+  brown:'#a16207', yellow:'#fbbf24',   light_gray:'#94a3b8', white:'#e2e8f0',
+  i_black:'#e2e8f0', i_brown:'#fbbf24', i_cyan:'#22d3ee', i_light_gray:'#60a5fa',
+  c_brown:'#b45309', orange:'#f97316', light_red_red:'#f87171',
+};
+const CDDA_BG = {
+  black:'#0a0b10', dark_gray:'#1f2937', blue:'#1e3a5f', light_blue:'#1d4ed8',
+  green:'#052e16', light_green:'#14532d', cyan:'#083344', light_cyan:'#0a3744',
+  red:'#450a0a',   light_red:'#7f1d1d', magenta:'#3b0764', pink:'#831843',
+  brown:'#292524', yellow:'#1c1a05', light_gray:'#1e293b', white:'#1c1c1c',
+};
+
+function cdda2fg(c) {
+  if (!c) return '#94a3b8';
+  if (Array.isArray(c)) c = c[0];
+  const parts = c.split('_');
+  return CDDA_FG[c] || CDDA_FG[parts[0]] || '#94a3b8';
+}
+function cdda2bg(c) {
+  if (!c) return '#111318';
+  if (Array.isArray(c)) c = c[0];
+  const parts = c.split('_');
+  if (parts.length > 1) {
+    const bg = parts.slice(1).join('_');
+    if (CDDA_BG[bg]) return CDDA_BG[bg];
+  }
+  return CDDA_BG[c] || '#111318';
+}
+
+// ── State ─────────────────────────────────────────────────────
+let itemsDefs   = null;   // {types, mods}
+let spriteIdx   = null;   // {tilesetName: {id: {si,file,fg,bg,sw,sh,start}}}
+let imgCache    = new Map();
+
+// Flat array of all entities: [{id, name, sym, color, type, mod}, …]
+let allEntities = [];
+let filteredEntities = [];
+
+// Table state
+let tablePage   = 0;
+let pageSize    = 100;
+
+// Grid state  
+let gridPage    = 0;
+const GRID_CHUNK= 200;
+
+// Active tab
+let activeTab   = 0;
+
+// Tileset sheets config (parsed tile_config.json data)
+let tsSheets    = {};   // tilesetName → {tileW, tileH, sections:[{file,sprW,sprH,startIdx}]}
+
+// Which tilesets to show as columns in table
+const TILESETS = [
+  'UltimateCataclysm','RetroDaysTileset','MshockXotto+',
+  'Cuteclysm','HollowMoon','PenAndPaper','GiantDays',
+  'ChibiUltica','BrownLikeBears','NeoDaysTileset','Altica',
+];
+
+const TYPE_COLORS = {
+  ITEM:'#60a5fa', terrain:'#4ade80', furniture:'#fbbf24',
+  MONSTER:'#f87171', vehicle_part:'#a78bfa',
+};
+
+// ── Tab switching ─────────────────────────────────────────────
+function switchTab(idx) {
+  activeTab = idx;
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
+  document.querySelectorAll('.tab-panel').forEach((p,i) => p.classList.toggle('active', i===idx));
+  if (idx === 1 && allEntities.length > 0) renderGrid();
+}
+
+// ── Boot sequence ─────────────────────────────────────────────
+let versionsList = [];
+let currentVersionPath = '';
+
+async function changeVersion() {
+  const vSel = document.getElementById('versionSelect');
+  if (vSel) localStorage.setItem('cddaBrowserVersion', vSel.value);
+  document.getElementById('globalOverlay').classList.remove('hidden');
+  imgCache.clear();
+  await boot();
+}
+
+async function boot() {
+  if (versionsList.length === 0) {
+    try {
+      const vRes = await fetch('./versions.json');
+      if (vRes.ok) versionsList = await vRes.json();
+      const vSel = document.getElementById('versionSelect');
+      if (vSel && versionsList.length > 0) {
+        vSel.innerHTML = versionsList.map((v, i) => `<option value="${i}">${esc(v.name)}</option>`).join('');
+        const savedV = localStorage.getItem('cddaBrowserVersion');
+        if (savedV && versionsList[savedV]) vSel.value = savedV;
+      }
+    } catch(e) {
+      console.warn("No versions.json, defaulting to local root");
+      versionsList = [{id: 'local', name: 'Local', path: ''}];
+    }
+  }
+
+  const vIdx = document.getElementById('versionSelect')?.value || 0;
+  const curV = versionsList[vIdx];
+  currentVersionPath = curV ? (curV.path.endsWith('/') ? curV.path : (curV.path === '' ? '' : curV.path + '/')) : '';
+
+  if (curV && curV.build_time) {
+    document.getElementById('chipBuildWrap').style.display = '';
+    document.getElementById('chipBuild').textContent = curV.build_time;
+  } else {
+    document.getElementById('chipBuildWrap').style.display = 'none';
+  }
+
+  setProgress(5);
+  setOvText('Loading definitions…', `Fetching data for ${curV?.name || 'Local'}`);
+  try {
+    const [defsRes, spRes] = await Promise.all([
+      fetch(currentVersionPath + 'items_defs.json'),
+      fetch(currentVersionPath + 'sprite_index.json'),
+    ]);
+    setProgress(40);
+    if (!defsRes.ok) throw new Error('items_defs.json: ' + defsRes.status);
+    if (!spRes.ok)   throw new Error('sprite_index.json: ' + spRes.status);
+
+    setOvText('Parsing data…', 'Building entity list');
+    [itemsDefs, spriteIdx] = await Promise.all([defsRes.json(), spRes.json()]);
+    setProgress(70);
+
+    // Flatten all entities
+    buildEntityList();
+    setProgress(85);
+
+    // Populate mods dropdowns
+    populateModDropdowns();
+
+    // Update header chips
+    document.getElementById('chipItems').textContent    = allEntities.length.toLocaleString();
+    document.getElementById('chipTypes').textContent    = Object.keys(itemsDefs.types).length;
+    document.getElementById('chipMods').textContent     = itemsDefs.mods.length;
+
+    // Build table columns header
+    buildTableHeader();
+    applyFilters();
+    setProgress(100);
+
+    setTimeout(() => {
+      document.getElementById('globalOverlay').classList.add('hidden');
+    }, 300);
+
+  } catch(e) {
+    setOvText('Boot failed ⚠️', e.message + ' — serve via HTTP (python3 -m http.server)');
+  }
+}
+
+function setProgress(pct) {
+  document.getElementById('ovBarFill').style.width = pct + '%';
+  document.getElementById('loadProgress').style.width = pct + '%';
+}
+function setOvText(title, sub) {
+  document.getElementById('ovTitle').textContent = title;
+  document.getElementById('ovSub').textContent   = sub;
+}
+
+// ── Build entity list ─────────────────────────────────────────
+function buildEntityList() {
+  allEntities = [];
+  for (const [type, entries] of Object.entries(itemsDefs.types)) {
+    for (const [id, def] of Object.entries(entries)) {
+      allEntities.push({id, type, name: def.n||id, sym: def.s||'?', color: def.c||'', looks_like: def.L||'', mod: def.mod||'__core__'});
+    }
+  }
+  // Sort: type then name
+  allEntities.sort((a,b) => {
+    if (a.type < b.type) return -1;
+    if (a.type > b.type) return 1;
+    return (a.name||'').localeCompare(b.name||'');
+  });
+}
+
+// ── Populate mod dropdowns ────────────────────────────────────
+function populateModDropdowns() {
+  const mods = itemsDefs.mods;
+
+  // Sort: core first, then alphabetically by display name
+  const sorted = [...mods].sort((a, b) => {
+    const aCore = (a.category === 'core');
+    const bCore = (b.category === 'core');
+    if (aCore && !bCore) return -1;
+    if (!aCore && bCore) return 1;
+    return (a.name || a.id).localeCompare(b.name || b.id);
+  });
+
+  let html = '<option value="">All Mods</option>';
+  // Separator before non-core mods
+  let pastCore = false;
+  for (const m of sorted) {
+    if (!pastCore && m.category !== 'core') {
+      html += '<option disabled>──────────</option>';
+      pastCore = true;
+    }
+    const prefix = m.category === 'core' ? '⚙ ' : '📦 ';
+    html += `<option value="${esc(m.id)}">${prefix}${esc(m.name || m.id)}</option>`;
+  }
+
+  document.getElementById('modFilter').innerHTML = html;
+  document.getElementById('gridModFilter').innerHTML = html;
+}
+
+// ── Build table header columns ────────────────────────────────
+function buildTableHeader() {
+  // Colgroup
+  const cg = document.getElementById('tableColGroup');
+  let cgHtml = '<col style="width:210px"><col style="width:70px">';
+  for (let i = 0; i < TILESETS.length; i++) cgHtml += '<col style="width:50px">';
+  cg.innerHTML = cgHtml;
+
+  // Thead row 1: column names
+  let thRow = '<tr>';
+  thRow += '<th class="th-name col-item">Name / ID</th>';
+  thRow += '<th class="th-ascii">ASCII</th>';
+  for (const ts of TILESETS) {
+    thRow += `<th class="th-ts" title="${ts}">${ts.replace('Tileset','').replace('UltimateCataclysm','UC').replace('RetroDays','Retro').replace('BrownLikeBears','BBears').replace('NeoDays','Neo').replace('GiantDays','Giant')}</th>`;
+  }
+  thRow += '</tr>';
+
+  // Thead row 2: counts — dynamically updated by updateCountRow()
+  let countRow = '<tr class="tr-count">';
+  countRow += '<td class="tc-name" id="tcTotal">—</td>';
+  countRow += '<td class="tc-ascii-count" id="tcAsciiCount">—</td>';
+  for (const ts of TILESETS) {
+    const safeId = ts.replace(/[^a-z0-9]/gi,'_');
+    countRow += `<td class="tc-count" id="tcCount-${safeId}">—</td>`;
+  }
+  countRow += '</tr>';
+
+  document.getElementById('tableHead').innerHTML = thRow + countRow;
+}
+
+// ── Filter logic ──────────────────────────────────────────────
+function applyFilters() {
+  const typeF   = document.getElementById('typeFilter').value;
+  const modF    = document.getElementById('modFilter').value;
+  const searchF = document.getElementById('searchFilter').value.toLowerCase().trim();
+
+  filteredEntities = allEntities.filter(e => {
+    if (typeF   && e.type !== typeF) return false;
+    if (modF    && e.mod  !== modF)  return false;
+    if (searchF && !e.name.toLowerCase().includes(searchF) && !e.id.toLowerCase().includes(searchF)) return false;
+    return true;
+  });
+
+  tablePage = 0;
+  updateCountRow();
+  renderTable();
+}
+
+// ── Update count row cells to reflect current filteredEntities ─
+function updateCountRow() {
+  // ASCII: count of filtered entities with a non-space symbol
+  const asciiCount = filteredEntities.filter(e => e.sym && e.sym !== ' ').length;
+  const asciiEl = document.getElementById('tcAsciiCount');
+  if (asciiEl) asciiEl.textContent = asciiCount.toLocaleString();
+
+  // Per-tileset: count how many filtered entities have a sprite in each tileset
+  for (const ts of TILESETS) {
+    const safeId = ts.replace(/[^a-z0-9]/gi,'_');
+    const el = document.getElementById('tcCount-' + safeId);
+    if (!el) continue;
+    if (!spriteIdx[ts]) { el.textContent = '0'; continue; }
+    let count = 0;
+    for (const e of filteredEntities) {
+      if (spriteIdx[ts][e.id]) count++;
+    }
+    el.textContent = count.toLocaleString();
+  }
+}
+
+// (applyModFilter removed — Section/Category dropdowns replaced with flat Mod dropdown)
+
+// ── Set page size ─────────────────────────────────────────────
+function setPageSize(n) {
+  pageSize = n;
+  ['50','100','250','0'].forEach(v => {
+    document.getElementById('psz'+v)?.classList.toggle('on', String(n)===v);
+  });
+  tablePage = 0;
+  renderTable();
+}
+
+// ── Render table ──────────────────────────────────────────────
+function renderTable() {
+  const total = filteredEntities.length;
+  const ps    = pageSize || total;
+  const maxPage = Math.max(0, Math.ceil(total / ps) - 1);
+  if (tablePage > maxPage) tablePage = maxPage;
+
+  const start = tablePage * ps;
+  const end   = Math.min(start + ps, total);
+  const slice = filteredEntities.slice(start, end);
+
+  document.getElementById('tableStatBadge').innerHTML = `<b>${total.toLocaleString()}</b> / ${allEntities.length.toLocaleString()}`;
+  document.getElementById('tcTotal').textContent = `${total.toLocaleString()} results`;
+
+  // Group by type within current page
+  const rows = buildTableRows(slice);
+  document.getElementById('tableBody').innerHTML = rows;
+
+  // Render ASCII cells
+  renderASCIICells();
+
+  // Lazy-render sprite cells as they scroll into view
+  setupSpriteObserver();
+
+  renderPager(total, ps, start, end);
+  // Scroll to top
+  document.getElementById('tableWrap').scrollTop = 0;
+}
+
+function buildTableRows(slice) {
+  let html = '';
+  let lastType = null;
+
+  for (const e of slice) {
+    // Section header on type change
+    if (e.type !== lastType) {
+      const typeNames = {ITEM:'Items',terrain:'Terrain',furniture:'Furniture',MONSTER:'Monsters',vehicle_part:'Vehicle Parts'};
+      html += `<tr class="tr-section"><td class="td-section" colspan="${2+TILESETS.length}">` +
+              `<span style="color:${TYPE_COLORS[e.type]||'#94a3b8'}">◆ ${typeNames[e.type]||e.type}</span></td></tr>`;
+      lastType = e.type;
+    }
+
+    const modMeta = itemsDefs.mods.find(m => m.id === e.mod);
+    const modName = modMeta ? modMeta.name : e.mod;
+    const isCore  = e.mod === '__core__';
+
+    html += `<tr class="tr-item" data-id="${esc(e.id)}" data-type="${esc(e.type)}"
+      onclick="examineByRow(this)">` ;
+
+    // Col 1: Name
+    html += `<td class="td-name">
+      <span class="etype">${e.type}</span>
+      <span>${esc(e.name||e.id)}</span>
+      <span class="eid">${esc(e.id)}</span>
+      ${!isCore ? `<span class="emod">[${esc(modName)}]</span>` : ''}
+    </td>`;
+
+    // Col 2: ASCII
+    const fg = cdda2fg(e.color);
+    const bg = cdda2bg(e.color);
+    const sym = e.sym && e.sym !== ' ' ? e.sym : '·';
+    html += `<td class="td-ascii">
+      <div class="ascii-cell" style="background:${bg};color:${fg}">${esc(sym)}</div>
+    </td>`;
+
+    // Sprite cols (lazy)
+    for (const ts of TILESETS) {
+      const sp = spriteIdx[ts] ? spriteIdx[ts][e.id] : null;
+      if (sp) {
+        html += `<td class="td-sprite">
+          <div class="sprite-canvas-wrap" 
+            data-ts="${esc(ts)}" 
+            data-id="${esc(e.id)}"
+            data-fg="${sp.fg??''}" data-bg="${sp.bg??''}"
+            data-si="${sp.si}" data-start="${sp.start}"
+            data-sw="${sp.sw}" data-sh="${sp.sh}"
+            data-file="${esc(sp.file)}">
+          </div>
+        </td>`;
+      } else {
+        html += `<td class="td-sprite"><span class="sprite-miss">—</span></td>`;
+      }
+    }
+    html += '</tr>';
+  }
+  return html;
+}
+
+// ── ASCII cell rendering ──────────────────────────────────────
+function renderASCIICells() {
+  // Already rendered via inline HTML
+}
+
+// ── Sprite lazy loading via IntersectionObserver ─────────────
+let spriteObserver = null;
+function setupSpriteObserver() {
+  if (spriteObserver) spriteObserver.disconnect();
+  spriteObserver = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const wrap = entry.target;
+      if (wrap.dataset.rendered) continue;
+      wrap.dataset.rendered = '1';
+      spriteObserver.unobserve(wrap);
+      renderSpriteCell(wrap);
+    }
+  }, { root: document.getElementById('tableWrap'), rootMargin: '200px' });
+
+  document.querySelectorAll('.sprite-canvas-wrap[data-ts]').forEach(el => {
+    spriteObserver.observe(el);
+  });
+}
+
+async function renderSpriteCell(wrap) {
+  const {ts, id, fg, bg, si, start, sw, sh, file} = wrap.dataset;
+  const tsName = ts;
+  const fgIdx  = fg !== '' ? parseInt(fg) : null;
+  const bgIdx  = bg !== '' ? parseInt(bg) : null;
+  const secIdx = parseInt(si);
+  const startI = parseInt(start);
+  const sprW   = parseInt(sw);
+  const sprH   = parseInt(sh);
+  const imgSrc = file;
+
+  const cellSize = 36;
+  const canvas = document.createElement('canvas');
+  canvas.width  = cellSize;
+  canvas.height = cellSize;
+  wrap.appendChild(canvas);
+
+  try {
+    const img = await loadImg(imgSrc);
+    if (!img?.complete || !img.naturalWidth) return;
+
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    // Draw background sprite first
+    if (bgIdx !== null) {
+      drawFrame(ctx, img, bgIdx, startI, sprW, sprH, 0, 0, cellSize, cellSize);
+    }
+    // Draw foreground sprite
+    if (fgIdx !== null) {
+      drawFrame(ctx, img, fgIdx, startI, sprW, sprH, 0, 0, cellSize, cellSize);
+    }
+  } catch(e) {}
+}
+
+function drawFrame(ctx, img, idx, startIdx, sprW, sprH, dx, dy, dW, dH) {
+  const localIdx = idx - startIdx;
+  if (localIdx < 0) return;
+  const spritesPerRow = Math.floor(img.naturalWidth / sprW);
+  if (!spritesPerRow) return;
+  const sx = (localIdx % spritesPerRow) * sprW;
+  const sy = Math.floor(localIdx / spritesPerRow) * sprH;
+  if (sy + sprH > img.naturalHeight) return;
+  try { ctx.drawImage(img, sx, sy, sprW, sprH, dx, dy, dW, dH); } catch(e) {}
+}
+
+function loadImg(url) {
+  if (imgCache.has(url)) {
+    const img = imgCache.get(url);
+    if (img.complete && img.naturalWidth > 0) return Promise.resolve(img);
+    return new Promise(r => { img.onload = () => r(img); img.onerror = () => r(null); });
+  }
+  return new Promise(r => {
+    const img = new Image();
+    imgCache.set(url, img);
+    img.onload  = () => r(img);
+    img.onerror = () => r(null);
+    img.src = './' + currentVersionPath + url;
+  });
+}
+
+// ── Pagination ────────────────────────────────────────────────
+function renderPager(total, ps, start, end) {
+  const info = document.getElementById('pagerInfo');
+  const btns = document.getElementById('pagerBtns');
+
+  if (!ps || total === 0) {
+    info.innerHTML = `Showing all <b>${total.toLocaleString()}</b> rows`;
+    btns.innerHTML = '';
+    return;
+  }
+
+  const maxPage = Math.ceil(total / ps) - 1;
+  info.innerHTML = `Rows <b>${(start+1).toLocaleString()}</b>–<b>${end.toLocaleString()}</b> of <b>${total.toLocaleString()}</b>`;
+
+  let html = '';
+  html += `<button class="pbtn" onclick="goPage(0)" ${tablePage===0?'disabled':''}>«</button>`;
+  html += `<button class="pbtn" onclick="goPage(${tablePage-1})" ${tablePage===0?'disabled':''}>‹</button>`;
+
+  // Sliding window of pages
+  const win = 4;
+  const pStart = Math.max(0, tablePage - win);
+  const pEnd   = Math.min(maxPage, tablePage + win);
+  if (pStart > 0) html += `<span class="pbtn" style="opacity:.4">…</span>`;
+  for (let p = pStart; p <= pEnd; p++) {
+    html += `<button class="pbtn${p===tablePage?' cur':''}" onclick="goPage(${p})">${p+1}</button>`;
+  }
+  if (pEnd < maxPage) html += `<span class="pbtn" style="opacity:.4">…</span>`;
+
+  html += `<button class="pbtn" onclick="goPage(${tablePage+1})" ${tablePage>=maxPage?'disabled':''}>›</button>`;
+  html += `<button class="pbtn" onclick="goPage(${maxPage})" ${tablePage>=maxPage?'disabled':''}>»</button>`;
+
+  btns.innerHTML = html;
+}
+
+function goPage(p) {
+  tablePage = p;
+  renderTable();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TAB 2: GRID VIEW
+// ══════════════════════════════════════════════════════════════
+let gridObserver  = null;
+let gridFiltered  = [];
+let gridRendered  = 0;
+const GRID_BATCH  = 150;
+
+function renderGrid() {
+  const ts        = document.getElementById('gridTilesetSel').value;
+  const typeF     = document.getElementById('gridTypeFilter').value;
+  const modF      = document.getElementById('gridModFilter').value;
+  const searchF   = document.getElementById('gridSearch').value.toLowerCase().trim();
+  const onlySprite= document.getElementById('gridOnlySprite').checked;
+
+  gridFiltered = allEntities.filter(e => {
+    if (typeF && e.type !== typeF) return false;
+    if (modF  && e.mod  !== modF)  return false;
+    if (searchF && !e.name.toLowerCase().includes(searchF) && !e.id.toLowerCase().includes(searchF)) return false;
+    if (onlySprite && ts !== '__ascii__') {
+      if (!spriteIdx[ts]?.[e.id]) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('gridStatBadge').innerHTML = `<b>${gridFiltered.length.toLocaleString()}</b> shown`;
+
+  const body = document.getElementById('gridBody');
+  body.innerHTML = '';
+  gridRendered = 0;
+
+  if (gridFiltered.length === 0) {
+    body.innerHTML = '<div class="empty-state"><div class="ei">🔍</div><div>No items match filters</div></div>';
+    return;
+  }
+
+  appendGridBatch(ts);
+
+  // Infinite scroll sentinel
+  if (gridRendered < gridFiltered.length) {
+    const sentinel = document.createElement('div');
+    sentinel.className = 'grid-sentinel';
+    sentinel.id = 'gridSentinel';
+    body.appendChild(sentinel);
+
+    if (gridObserver) gridObserver.disconnect();
+    gridObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && gridRendered < gridFiltered.length) {
+        appendGridBatch(ts);
+      }
+    }, { root: body, rootMargin: '400px' });
+    gridObserver.observe(sentinel);
+  }
+}
+
+function appendGridBatch(ts) {
+  const body  = document.getElementById('gridBody');
+  const sentinel = document.getElementById('gridSentinel');
+  const end   = Math.min(gridRendered + GRID_BATCH, gridFiltered.length);
+  const frag  = document.createDocumentFragment();
+  const cardSize = parseInt(document.getElementById('gridCardSize').value);
+  const sprSize  = Math.round(cardSize * 0.55);
+
+  for (let i = gridRendered; i < end; i++) {
+    const e   = gridFiltered[i];
+    const sp  = ts !== '__ascii__' && spriteIdx[ts] ? spriteIdx[ts][e.id] : null;
+    const card = document.createElement('div');
+    card.className = 'grid-card';
+    card.style.width  = cardSize + 'px';
+    card.style.minHeight = (cardSize + 18) + 'px';
+
+    card.addEventListener('click', () => openExamine(e));
+
+    const sprWrap = document.createElement('div');
+    sprWrap.className = 'gc-sprite';
+    sprWrap.style.width  = sprSize + 'px';
+    sprWrap.style.height = sprSize + 'px';
+
+    if (ts === '__ascii__') {
+      // ASCII render
+      const fg = cdda2fg(e.color);
+      const bg = cdda2bg(e.color);
+      const sym = e.sym && e.sym !== ' ' ? e.sym : '·';
+      const ascCell = document.createElement('div');
+      ascCell.className = 'gc-ascii-cell';
+      ascCell.style.cssText = `background:${bg};color:${fg};width:${sprSize}px;height:${sprSize}px;font-size:${Math.round(sprSize*0.55)}px`;
+      ascCell.textContent = sym;
+      sprWrap.appendChild(ascCell);
+    } else if (sp) {
+      // Sprite canvas — lazy loaded via observer
+      const canvas = document.createElement('canvas');
+      canvas.width  = sprSize;
+      canvas.height = sprSize;
+      canvas.style.cssText = 'image-rendering:pixelated;image-rendering:crisp-edges;border-radius:3px;';
+      canvas.dataset.file  = sp.file;
+      canvas.dataset.fg    = sp.fg ?? '';
+      canvas.dataset.bg    = sp.bg ?? '';
+      canvas.dataset.start = sp.start;
+      canvas.dataset.sw    = sp.sw;
+      canvas.dataset.sh    = sp.sh;
+      canvas.dataset.size  = sprSize;
+      sprWrap.appendChild(canvas);
+
+      // Observe for lazy draw
+      observeGridCanvas(canvas);
+    } else {
+      // No sprite — show ASCII fallback
+      const fg = cdda2fg(e.color);
+      const bg = cdda2bg(e.color);
+      const sym = e.sym && e.sym !== ' ' ? e.sym : '·';
+      const ascCell = document.createElement('div');
+      ascCell.className = 'gc-ascii-cell';
+      ascCell.style.cssText = `background:${bg};color:${fg};width:${sprSize}px;height:${sprSize}px;font-size:${Math.round(sprSize*0.45)}px;opacity:.4`;
+      ascCell.textContent = sym;
+      sprWrap.appendChild(ascCell);
+    }
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'gc-name';
+    nameEl.title = e.name + '\n' + e.id;
+    nameEl.textContent = e.name || e.id;
+
+    const typeEl = document.createElement('div');
+    typeEl.className = 'gc-type';
+    typeEl.style.color = TYPE_COLORS[e.type] || '#94a3b8';
+    typeEl.textContent = e.type;
+
+    card.appendChild(sprWrap);
+    card.appendChild(nameEl);
+    card.appendChild(typeEl);
+    frag.appendChild(card);
+  }
+
+  gridRendered = end;
+
+  // Insert before sentinel
+  if (sentinel) body.insertBefore(frag, sentinel);
+  else body.appendChild(frag);
+
+  // Remove sentinel if done
+  if (gridRendered >= gridFiltered.length && sentinel) {
+    sentinel.remove();
+    if (gridObserver) { gridObserver.disconnect(); gridObserver = null; }
+  }
+}
+
+// Lazy canvas rendering for grid
+let gridCanvasObserver = null;
+function observeGridCanvas(canvas) {
+  if (!gridCanvasObserver) {
+    gridCanvasObserver = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        const c = e.target;
+        if (c.dataset.drawn) continue;
+        c.dataset.drawn = '1';
+        gridCanvasObserver.unobserve(c);
+        drawGridCanvas(c);
+      }
+    }, { root: document.getElementById('gridBody'), rootMargin: '300px' });
+  }
+  gridCanvasObserver.observe(canvas);
+}
+
+async function drawGridCanvas(canvas) {
+  const fg    = canvas.dataset.fg !== '' ? parseInt(canvas.dataset.fg) : null;
+  const bg    = canvas.dataset.bg !== '' ? parseInt(canvas.dataset.bg) : null;
+  const start = parseInt(canvas.dataset.start);
+  const sw    = parseInt(canvas.dataset.sw);
+  const sh    = parseInt(canvas.dataset.sh);
+  const size  = parseInt(canvas.dataset.size);
+  const file  = canvas.dataset.file;
+
+  try {
+    const img = await loadImg(file);
+    if (!img?.complete || !img.naturalWidth) return;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    if (bg !== null) drawFrame(ctx, img, bg, start, sw, sh, 0, 0, size, size);
+    if (fg !== null) drawFrame(ctx, img, fg, start, sw, sh, 0, 0, size, size);
+  } catch(e) {}
+}
+
+function applyGridSize() {
+  // Re-render grid with new size
+  if (gridObserver) { gridObserver.disconnect(); gridObserver = null; }
+  if (gridCanvasObserver) { gridCanvasObserver.disconnect(); gridCanvasObserver = null; }
+  renderGrid();
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function getModName(modId) {
+  const m = itemsDefs?.mods?.find(m => m.id === modId);
+  return m ? m.name : modId;
+}
+
+// ══ EXAMINE MODAL ════════════════════════════════════════════
+const FIELD_DECODE = {
+  n:'Name', s:'Symbol', c:'Color', L:'Looks Like', mod:'Mod',
+  v:'Volume (ml)', w:'Weight (g)', m:'Material', price:'Price',
+  b:'Bashing', cut:'Cutting', cu:'Cutting', pierce:'Piercing', t:'To-Hit',
+  rng:'Range', dmg:'Damage', disp:'Dispersion', recoil:'Recoil',
+  clip:'Clip Size', ammo:'Ammo Type', skill:'Skill',
+  covers:'Covers', cov:'Coverage', enc:'Encumbrance',
+  warmth:'Warmth', storage:'Storage (ml)',
+  quench:'Quench', nutr:'Nutrition', calories:'Calories',
+  movecost:'Move Cost', move_cost:'Move Cost',
+  hp:'HP', speed:'Speed', melee_skill:'Melee Skill',
+  melee_dice:'Melee Dice', melee_cut:'Melee Cut',
+  aggression:'Aggression', morale:'Morale',
+  vision_day:'Day Vision', vision_night:'Night Vision',
+  harvest:'Harvest', death_drops:'Death Drops',
+  flags:'Flags', f:'Flags', techniques:'Techniques',
+  d:'Description', description:'Description',
+  durability:'Durability', power:'Power', fuel_type:'Fuel Type',
+  charges:'Charges', max_charges:'Max Charges',
+  to_hit:'To-Hit', bash:'Bash Resist', cutting:'Cutting Resist',
+};
+
+const TS_SHORT = {
+  UltimateCataclysm:'UC', RetroDaysTileset:'Retro',
+  'MshockXotto+':'Mshock', Cuteclysm:'Cute', HollowMoon:'Hollow',
+  PenAndPaper:'P&P', GiantDays:'Giant', ChibiUltica:'Chibi',
+  BrownLikeBears:'BBears', NeoDaysTileset:'Neo', Altica:'Altica',
+};
+
+function examineByRow(tr) {
+  const id   = tr.dataset.id;
+  const type = tr.dataset.type;
+  const e = allEntities.find(x => x.id === id && x.type === type);
+  if (e) openExamine(e);
+}
+
+function openExamine(ent) {
+  const rawDef  = itemsDefs.types?.[ent.type]?.[ent.id] || {};
+  const modMeta = itemsDefs.mods?.find(m => m.id === ent.mod);
+  const modName = modMeta ? modMeta.name : (ent.mod === '__core__' ? 'Core Game' : ent.mod);
+  const fg  = cdda2fg(ent.color);
+  const bg  = cdda2bg(ent.color);
+  const sym = ent.sym && ent.sym !== ' ' ? ent.sym : '·';
+  const typeCol  = TYPE_COLORS[ent.type] || '#94a3b8';
+  const typeNames = {ITEM:'Item',terrain:'Terrain',furniture:'Furniture',MONSTER:'Monster',vehicle_part:'Vehicle Part'};
+
+  // Header
+  const ascEl = document.getElementById('exAscii');
+  ascEl.textContent = sym;
+  Object.assign(ascEl.style, {
+    width:'56px',height:'56px',borderRadius:'9px',
+    border:'1px solid rgba(255,255,255,.08)',
+    display:'flex',alignItems:'center',justifyContent:'center',
+    fontFamily:"'JetBrains Mono',monospace",
+    fontSize:'28px',fontWeight:'700',flexShrink:'0',
+    background:bg, color:fg,
+  });
+  document.getElementById('exName').textContent   = ent.name || ent.id;
+  document.getElementById('exIdLine').textContent = ent.id;
+  document.getElementById('exBadges').innerHTML   =
+    `<span class="ex-badge" style="background:${typeCol}22;color:${typeCol}">${typeNames[ent.type]||ent.type}</span>` +
+    `<span class="ex-badge" style="background:var(--pdim);color:var(--purple)">\u{1F4E6} ${esc(modName)}</span>`;
+
+  // Build body
+  let html = '';
+
+  // — Sprites row —
+  html += `<div class="ex-section"><div class="ex-section-hdr"><span>Sprites</span></div><div class="ex-sprites-row">`;
+  // ASCII card
+  html += `<div class="ex-ts-card has-sprite">`+
+    `<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:${bg};color:${fg};font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;">${esc(sym)}</div>`+
+    `<div class="ex-ts-label">ASCII</div></div>`;
+  // Tileset cards
+  for (const ts of TILESETS) {
+    const sp    = spriteIdx[ts]?.[ent.id];
+    const short = TS_SHORT[ts] || ts;
+    if (sp) {
+      html += `<div class="ex-ts-card has-sprite">`+
+        `<canvas width="48" height="48"`+
+        ` style="image-rendering:pixelated;image-rendering:crisp-edges;border-radius:4px;display:block;"`+
+        ` data-file="${esc(sp.file)}" data-fg="${sp.fg??''}" data-bg="${sp.bg??''}"`+
+        ` data-start="${sp.start}" data-sw="${sp.sw}" data-sh="${sp.sh}"`+
+        ` class="ex-spr"></canvas>`+
+        `<div class="ex-ts-label">${esc(short)}</div></div>`;
+    } else {
+      html += `<div class="ex-ts-card no-sprite">`+
+        `<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--t4);">—</div>`+
+        `<div class="ex-ts-label">${esc(short)}</div></div>`;
+    }
+  }
+  html += `</div></div>`;
+
+  // — Raw JSON —
+  html += `<div class="ex-section">`+
+    `<div class="ex-section-hdr">`+
+      `<span>Raw JSON</span>`+
+      `<button class="ex-raw-toggle" id="exRawToggle" onclick="toggleExRaw()">&#9654; expand</button>`+
+    `</div>`+
+    `<pre class="ex-raw hidden" id="exRaw">${esc(JSON.stringify(rawDef, null, 2))}</pre>`+
+  `</div>`;
+
+  document.getElementById('exBody').innerHTML = html;
+  document.getElementById('examineOverlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  // Render sprite canvases
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.ex-spr').forEach(drawExamineCanvas);
+  });
+}
+
+async function drawExamineCanvas(canvas) {
+  const fg    = canvas.dataset.fg !== '' ? parseInt(canvas.dataset.fg) : null;
+  const bgI   = canvas.dataset.bg !== '' ? parseInt(canvas.dataset.bg) : null;
+  const start = parseInt(canvas.dataset.start);
+  const sw    = parseInt(canvas.dataset.sw);
+  const sh    = parseInt(canvas.dataset.sh);
+  try {
+    const img = await loadImg(canvas.dataset.file);
+    if (!img?.complete || !img.naturalWidth) return;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    if (bgI !== null) drawFrame(ctx, img, bgI, start, sw, sh, 0, 0, 48, 48);
+    if (fg  !== null) drawFrame(ctx, img, fg,  start, sw, sh, 0, 0, 48, 48);
+  } catch(_) {}
+}
+
+function closeExamine() {
+  document.getElementById('examineOverlay').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function toggleExRaw() {
+  const raw = document.getElementById('exRaw');
+  const tog = document.getElementById('exRawToggle');
+  raw.classList.toggle('hidden');
+  tog.innerHTML = raw.classList.contains('hidden') ? '&#9654; expand' : '&#9660; collapse';
+}
+
+document.getElementById('examineOverlay').addEventListener('click', function(ev) {
+  if (ev.target === this) closeExamine();
+});
+
+// ── Keyboard shortcuts ────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape')     { closeExamine(); return; }
+  if (document.getElementById('examineOverlay').classList.contains('hidden')) {
+    if (e.key === 'ArrowRight' && activeTab === 0) goPage(tablePage + 1);
+    if (e.key === 'ArrowLeft'  && activeTab === 0) goPage(Math.max(0, tablePage - 1));
+    if (e.key === '1') switchTab(0);
+    if (e.key === '2') switchTab(1);
+  }
+});
+
+// ── Start ─────────────────────────────────────────────────────
+boot();
+</script>
+</body>
+</html>
