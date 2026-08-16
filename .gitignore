@@ -17,3 +17,5 @@ versions/
 versions.json
 public/
 .cdda_local_path
+*.zip
+gd_sample.json
