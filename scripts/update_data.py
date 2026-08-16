@@ -109,11 +109,12 @@ def generate_sprite_index(gfx_dir, target_dir):
                         if isinstance(bg, (list, dict)): bg = 0
                         
                         ts_data[i] = {
-                            "file": file_name,
+                            "file": f"gfx/{tileset}/{file_name}",
                             "fg": fg,
                             "bg": bg,
                             "sw": sw,
-                            "sh": sh
+                            "sh": sh,
+                            "start": sheet.get('start', 0)
                         }
                         
             if ts_data:
