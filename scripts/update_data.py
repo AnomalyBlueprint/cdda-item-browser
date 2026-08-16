@@ -167,7 +167,25 @@ def generate_sprite_index(gfx_dir, target_dir):
         json.dump(sprite_index, f, separators=(',', ':'))
 
 def main():
-    targets = fetch_releases()
+    local_path_file = '.cdda_local_path'
+    targets = []
+    
+    if os.path.exists(local_path_file):
+        with open(local_path_file, 'r') as f:
+            local_path = f.read().strip()
+        if os.path.exists(local_path):
+            print(f"Using local CDDA data from {local_path} instead of downloading...")
+            targets = [{
+                'tag_name': 'local_test',
+                'name': 'Local Test Version',
+                'prerelease': False,
+                'published_at': datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+                'local_extract_dir': local_path
+            }]
+            
+    if not targets:
+        targets = fetch_releases()
+        
     versions_info = []
     
     # Load existing versions to skip re-downloading
@@ -202,42 +220,46 @@ def main():
         target_dir = f"public/versions/{version_id}"
         
         # Check cache
-        if version_id in existing_versions:
+        if version_id in existing_versions and 'local_extract_dir' not in release:
             cached_v = existing_versions[version_id]
             if cached_v.get('build_time') == build_time and os.path.exists(target_dir):
                 print("  Already up to date. Skipping download.")
                 versions_info.append(cached_v)
                 continue
         
-        dl_url = find_asset(release)
-        zip_path = f"{version_id}.zip"
+        extract_dir = release.get('local_extract_dir')
+        is_local_dir = extract_dir is not None
         
-        if not os.path.exists(zip_path):
-            print(f"  Downloading {dl_url}...")
+        if not is_local_dir:
+            dl_url = find_asset(release)
+            zip_path = f"{version_id}.zip"
+            
+            if not os.path.exists(zip_path):
+                print(f"  Downloading {dl_url}...")
+                try:
+                    req = urllib.request.Request(dl_url, headers=HEADERS)
+                    with urllib.request.urlopen(req) as response, open(zip_path, 'wb') as out_file:
+                        shutil.copyfileobj(response, out_file)
+                except Exception as e:
+                    print(f"  Failed to download {dl_url}: {e}")
+                    continue
+            else:
+                print(f"  Using existing local {zip_path}...")
+                
+            print("  Extracting data/json and gfx...")
+            extract_dir = f"extract_{version_id}"
+            os.makedirs(extract_dir, exist_ok=True)
+            
             try:
-                req = urllib.request.Request(dl_url, headers=HEADERS)
-                with urllib.request.urlopen(req) as response, open(zip_path, 'wb') as out_file:
-                    shutil.copyfileobj(response, out_file)
+                with zipfile.ZipFile(zip_path, 'r') as z:
+                    for file in z.namelist():
+                        if 'data/json/' in file or 'gfx/' in file:
+                            z.extract(file, extract_dir)
             except Exception as e:
-                print(f"  Failed to download {dl_url}: {e}")
+                print(f"  Failed to extract zip: {e}")
+                if os.path.exists(zip_path): os.remove(zip_path)
                 continue
-        else:
-            print(f"  Using existing local {zip_path}...")
-            
-        print("  Extracting data/json and gfx...")
-        extract_dir = f"extract_{version_id}"
-        os.makedirs(extract_dir, exist_ok=True)
-        
-        try:
-            with zipfile.ZipFile(zip_path, 'r') as z:
-                for file in z.namelist():
-                    if 'data/json/' in file or 'gfx/' in file:
-                        z.extract(file, extract_dir)
-        except Exception as e:
-            print(f"  Failed to extract zip: {e}")
-            if os.path.exists(zip_path): os.remove(zip_path)
-            continue
-            
+                
         source_data_json = None
         source_gfx = None
         for root, dirs, files in os.walk(extract_dir):
@@ -247,7 +269,7 @@ def main():
                 source_gfx = os.path.join(root, 'gfx')
                 
         if os.path.exists('data'):
-            shutil.rmtree('data')
+            shutil.rmtree('data', ignore_errors=True)
             
         if source_data_json:
             os.makedirs('data/json', exist_ok=True)
@@ -273,10 +295,12 @@ def main():
             shutil.copytree(source_gfx, target_gfx)
             generate_sprite_index(target_gfx, target_dir)
             
-        shutil.rmtree(extract_dir)
+        if not is_local_dir:
+            shutil.rmtree(extract_dir)
         if os.path.exists('data'):
-            shutil.rmtree('data')
-        os.remove(zip_path)
+            shutil.rmtree('data', ignore_errors=True)
+        if not is_local_dir and os.path.exists(zip_path):
+            os.remove(zip_path)
         
         versions_info.append({
             "id": version_id,
