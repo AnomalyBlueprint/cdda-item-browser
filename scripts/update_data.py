@@ -18,6 +18,7 @@ def get_png_size(filepath):
         pass
     return None, None
 
+SCRIPT_VERSION = 1
 HEADERS = {'User-Agent': 'CDDA-Item-Browser-CI'}
 LATEST_URL = 'https://api.github.com/repos/CleverRaven/Cataclysm-DDA/releases/latest'
 API_URL = 'https://api.github.com/repos/CleverRaven/Cataclysm-DDA/releases?per_page=10'
@@ -222,7 +223,7 @@ def main():
         # Check cache
         if version_id in existing_versions and 'local_extract_dir' not in release:
             cached_v = existing_versions[version_id]
-            if cached_v.get('build_time') == build_time and os.path.exists(target_dir):
+            if cached_v.get('build_time') == build_time and cached_v.get('script_version') == SCRIPT_VERSION and os.path.exists(target_dir):
                 print("  Already up to date. Skipping download.")
                 versions_info.append(cached_v)
                 continue
@@ -306,7 +307,8 @@ def main():
             "id": version_id,
             "name": version_name,
             "path": f"versions/{version_id}/",
-            "build_time": build_time
+            "build_time": build_time,
+            "script_version": SCRIPT_VERSION
         })
         
     print("\nWriting versions.json...")
