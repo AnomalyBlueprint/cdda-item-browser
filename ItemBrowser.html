@@ -712,7 +712,7 @@ input[type=text]::placeholder{color:var(--t3);}
   </div>
   
   <div class="hchips">
-    <div class="chip" id="chipBuildWrap" style="display:none">🕒 <b id="chipBuild">…</b></div>
+    <div class="chip" id="chipBuildWrap" style="display:none">Built: <b id="chipBuild">…</b></div>
     <div class="chip"><b id="chipItems">…</b> items</div>
     <div class="chip"><b id="chipTypes">…</b> types</div>
     <div class="chip"><b id="chipTilesets">11</b> tilesets</div>
@@ -853,7 +853,7 @@ input[type=text]::placeholder{color:var(--t3);}
         <div class="ex-badges"  id="exBadges"></div>
         <div class="ex-id-line" id="exIdLine">—</div>
       </div>
-      <button class="ex-close" onclick="closeExamine()" title="Close (Esc)">✕</button>
+      <button class="ex-close" onclick="closeExamine()" aria-label="Close (Esc)" title="Close (Esc)">✕</button>
     </div>
     <div class="ex-body" id="exBody"></div>
   </div>
@@ -1156,7 +1156,8 @@ function renderTable() {
   const slice = filteredEntities.slice(start, end);
 
   document.getElementById('tableStatBadge').innerHTML = `<b>${total.toLocaleString()}</b> / ${allEntities.length.toLocaleString()}`;
-  document.getElementById('tcTotal').textContent = `${total.toLocaleString()} results`;
+  const pageLabel = (ps && total > ps) ? ` (page ${tablePage+1}/${Math.ceil(total/ps)})` : '';
+  document.getElementById('tcTotal').textContent = `${total.toLocaleString()} results${pageLabel}`;
 
   // Group by type within current page
   const rows = buildTableRows(slice);
@@ -1688,6 +1689,16 @@ function toggleExRaw() {
 
 document.getElementById('examineOverlay').addEventListener('click', function(ev) {
   if (ev.target === this) closeExamine();
+});
+
+// Focus trap inside examine modal
+document.getElementById('examineOverlay').addEventListener('keydown', function(ev) {
+  if (!this.classList.contains('hidden') && ev.key === 'Tab') {
+    const focusable = this.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (ev.shiftKey) { if (document.activeElement === first) { last.focus(); ev.preventDefault(); } }
+    else             { if (document.activeElement === last)  { first.focus(); ev.preventDefault(); } }
+  }
 });
 
 // ── Keyboard shortcuts ────────────────────────────────────────
