@@ -3,8 +3,20 @@ import sys
 import json
 import urllib.request
 import zipfile
+import io
 import shutil
+import struct
 from datetime import datetime
+
+def get_png_size(filepath):
+    try:
+        with open(filepath, 'rb') as f:
+            head = f.read(24)
+            if head.startswith(b'\x89PNG\r\n\x1a\n') and head[12:16] == b'IHDR':
+                return struct.unpack('>II', head[16:24])
+    except Exception:
+        pass
+    return None, None
 
 HEADERS = {'User-Agent': 'CDDA-Item-Browser-CI'}
 LATEST_URL = 'https://api.github.com/repos/CleverRaven/Cataclysm-DDA/releases/latest'
@@ -92,47 +104,57 @@ def generate_sprite_index(gfx_dir, target_dir):
             elif 'tiles' in config:
                 tiles_arrays = config['tiles']
                 
+            current_sprite_offset = 0
+                
             for sheet in tiles_arrays:
                 file_name = sheet.get('file', '')
                 sw = sheet.get('sprite_width', base_w)
                 sh = sheet.get('sprite_height', base_h)
                 
-                if 'tiles' not in sheet:
-                    continue
+                sheet_start = sheet.get('sprite_offset', sheet.get('start', None))
+                if sheet_start is not None:
+                    current_sprite_offset = sheet_start
                     
-                for tile in sheet['tiles']:
-                    t_id = tile.get('id')
-                    if not t_id:
-                        continue
+                actual_start = current_sprite_offset
+                
+                if 'tiles' in sheet:
+                    for tile in sheet['tiles']:
+                        t_id = tile.get('id')
+                        if not t_id:
+                            continue
+                            
+                        if isinstance(t_id, str):
+                            ids = [t_id]
+                        elif isinstance(t_id, list):
+                            ids = t_id
+                        else:
+                            continue
+                            
+                        fg = extract_sprites(tile.get('fg', 0))
+                        bg = extract_sprites(tile.get('bg', 0))
                         
-                    if isinstance(t_id, str):
-                        ids = [t_id]
-                    elif isinstance(t_id, list):
-                        ids = t_id
-                    else:
-                        continue
+                        if len(fg) == 1: fg = fg[0]
+                        elif len(fg) == 0: fg = 0
                         
-                    fg = extract_sprites(tile.get('fg', 0))
-                    bg = extract_sprites(tile.get('bg', 0))
-                    
-                    # Store as integers if only 1 sprite, or list if multiple variants
-                    if len(fg) == 1: fg = fg[0]
-                    elif len(fg) == 0: fg = 0
-                    
-                    if len(bg) == 1: bg = bg[0]
-                    elif len(bg) == 0: bg = 0
-                    
-                    for i in ids:
-
+                        if len(bg) == 1: bg = bg[0]
+                        elif len(bg) == 0: bg = 0
                         
-                        ts_data[i] = {
-                            "file": f"gfx/{tileset}/{file_name}",
-                            "fg": fg,
-                            "bg": bg,
-                            "sw": sw,
-                            "sh": sh,
-                            "start": sheet.get('start', 0)
-                        }
+                        for i in ids:
+                            ts_data[i] = {
+                                "file": f"gfx/{tileset}/{file_name}",
+                                "fg": fg,
+                                "bg": bg,
+                                "sw": sw,
+                                "sh": sh,
+                                "start": actual_start
+                            }
+                            
+                if file_name:
+                    img_path = os.path.join(tileset_path, file_name)
+                    w, h = get_png_size(img_path)
+                    if w and h and sw and sh:
+                        current_sprite_offset += (w // sw) * (h // sh)
+                        
                         
             if ts_data:
                 sprite_index[tileset] = ts_data
