@@ -354,6 +354,17 @@ input[type=text]::placeholder{color:var(--t3);}
   font-size:8px;color:var(--t4);
   font-family:'JetBrains Mono',monospace;
 }
+/* Fallback indicator on sprite cell */
+.sprite-canvas-wrap.spr-fallback { position:relative; }
+.sprite-canvas-wrap.spr-fallback::after {
+  content:'↩';
+  position:absolute;bottom:0;right:0;
+  font-size:7px;line-height:1;
+  color:var(--amber);background:var(--bg);
+  border-radius:2px 0 0 0;
+  padding:1px 2px;
+  pointer-events:none;
+}
 
 /* Sprite skeleton loader */
 @keyframes skel-pulse {
@@ -829,12 +840,15 @@ input[type=text]::placeholder{color:var(--t3);}
         <span class="ctrl-label">Search</span>
         <input type="text" id="gridSearch" placeholder="filter…" style="width:140px" oninput="renderGrid()">
       </div>
-      <!-- Only with sprite -->
+      <!-- Sprite state -->
       <div class="ctrl-group">
-        <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:11px;color:var(--t2)">
-          <input type="checkbox" id="gridOnlySprite" onchange="renderGrid()" style="accent-color:var(--green)">
-          Only with sprite
-        </label>
+        <span class="ctrl-label">Sprite</span>
+        <select id="gridSpriteFilter" onchange="renderGrid()">
+          <option value="all">Any State</option>
+          <option value="has">✓ Has Sprite</option>
+          <option value="fb">↩ Fallback Only</option>
+          <option value="any">✓ Any (Direct+Fallback)</option>
+        </select>
       </div>
       <!-- Card size -->
       <div class="ctrl-group">
@@ -1064,11 +1078,12 @@ function buildEntityList() {
 }
 
 // ── Sprite resolver with looks_like fallback ──────────────────
+// Returns {sprite, isFallback, sourceId} or null
 function getSprite(id, ts) {
   if (!spriteIdx[ts]) return null;
   let cur = id;
   for (let depth = 0; depth < 6; depth++) {
-    if (spriteIdx[ts][cur]) return spriteIdx[ts][cur];
+    if (spriteIdx[ts][cur]) return { sprite: spriteIdx[ts][cur], isFallback: depth > 0, sourceId: cur };
     const e = entityMap.get(cur);
     if (!e || !e.looks_like) return null;
     cur = e.looks_like;
@@ -1224,16 +1239,18 @@ function buildTableRows(slice) {
 
     // Sprite cols (lazy)
     for (const ts of TILESETS) {
-      const sp = getSprite(e.id, ts);
-      if (sp) {
+      const result = getSprite(e.id, ts);
+      if (result) {
+        const sp = result.sprite;
+        const fallbackAttr = result.isFallback ? ` data-fallback="1" data-source="${esc(result.sourceId)}"` : '';
         html += `<td class="td-sprite">
-          <div class="sprite-canvas-wrap" 
+          <div class="sprite-canvas-wrap${result.isFallback?' spr-fallback':''}" 
             data-ts="${esc(ts)}" 
             data-id="${esc(e.id)}"
             data-fg="${sp.fg??''}" data-bg="${sp.bg??''}"
             data-si="${sp.si}" data-start="${sp.start}"
             data-sw="${sp.sw}" data-sh="${sp.sh}"
-            data-file="${esc(sp.file)}">
+            data-file="${esc(sp.file)}"${fallbackAttr}>
           </div>
         </td>`;
       } else {
@@ -1373,13 +1390,16 @@ function renderGrid() {
   const ts        = document.getElementById('gridTilesetSel').value;
   const typeF     = document.getElementById('gridTypeFilter').value;
   const searchF   = document.getElementById('gridSearch').value.toLowerCase().trim();
-  const onlySprite= document.getElementById('gridOnlySprite').checked;
+  const spriteF   = document.getElementById('gridSpriteFilter').value; // 'all', 'has', 'fb'
 
   gridFiltered = allEntities.filter(e => {
     if (typeF && e.type !== typeF) return false;
     if (searchF && !e.name.toLowerCase().includes(searchF) && !e.id.toLowerCase().includes(searchF)) return false;
-    if (onlySprite && ts !== '__ascii__') {
-      if (!getSprite(e.id, ts)) return false;
+    if (ts !== '__ascii__') {
+      const spr = getSprite(e.id, ts);
+      if (spriteF === 'has' && (!spr || spr.isFallback)) return false;
+      if (spriteF === 'fb' && (!spr || !spr.isFallback)) return false;
+      if (spriteF === 'any' && !spr) return false;
     }
     return true;
   });
@@ -1424,7 +1444,9 @@ function appendGridBatch(ts) {
 
   for (let i = gridRendered; i < end; i++) {
     const e   = gridFiltered[i];
-    const sp  = ts !== '__ascii__' ? getSprite(e.id, ts) : null;
+    const result = ts !== '__ascii__' ? getSprite(e.id, ts) : null;
+    const sp  = result?.sprite || null;
+    const isFallback = result?.isFallback || false;
     const card = document.createElement('div');
     card.className = 'grid-card';
     card.style.width  = cardSize + 'px';
@@ -1629,16 +1651,20 @@ function openExamine(ent) {
     `<div class="ex-ts-label">ASCII</div></div>`;
   // Tileset cards
   for (const ts of TILESETS) {
-    const sp    = getSprite(ent.id, ts);
-    const short = TS_SHORT[ts] || ts;
-    if (sp) {
+    const result = getSprite(ent.id, ts);
+    const short  = TS_SHORT[ts] || ts;
+    if (result) {
+      const sp = result.sprite;
+      const fallbackLabel = result.isFallback
+        ? `<span style="font-size:7px;color:var(--amber);display:block;margin-top:1px" title="via ${result.sourceId}">↩ ${esc(result.sourceId)}</span>`
+        : '';
       html += `<div class="ex-ts-card has-sprite">`+
         `<canvas width="48" height="48"`+
         ` style="image-rendering:pixelated;image-rendering:crisp-edges;border-radius:4px;display:block;"`+
         ` data-file="${esc(sp.file)}" data-fg="${sp.fg??''}" data-bg="${sp.bg??''}"`+
         ` data-start="${sp.start}" data-sw="${sp.sw}" data-sh="${sp.sh}"`+
         ` class="ex-spr"></canvas>`+
-        `<div class="ex-ts-label">${esc(short)}</div></div>`;
+        `<div class="ex-ts-label">${esc(short)}${fallbackLabel}</div></div>`;
     } else {
       html += `<div class="ex-ts-card no-sprite">`+
         `<div style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--t4);">—</div>`+
