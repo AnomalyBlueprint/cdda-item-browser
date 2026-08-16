@@ -160,6 +160,9 @@ def main():
             
     os.makedirs('public/versions', exist_ok=True)
     shutil.copy('ItemBrowser.html', 'public/index.html')
+    if os.path.exists('manifest.json'): shutil.copy('manifest.json', 'public/')
+    if os.path.exists('service-worker.js'): shutil.copy('service-worker.js', 'public/')
+    if os.path.exists('icon.svg'): shutil.copy('icon.svg', 'public/')
     
     for idx, release in enumerate(targets):
         tag_name = release.get('tag_name', 'unknown')
