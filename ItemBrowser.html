@@ -485,6 +485,16 @@ input[type=text]::placeholder{color:var(--t3);}
 }
 .grid-loadmore:hover{color:var(--t1);}
 
+/* Grid stats bar */
+.grid-stats-bar {
+  display:flex;width:100%;height:4px;background:var(--border);
+  position:relative;flex-shrink:0;cursor:crosshair;
+}
+.gsb-seg { height:100%; transition:width .2s; position:relative; }
+.gsb-seg.direct { background:var(--green); }
+.gsb-seg.fallback { background:var(--amber); }
+.gsb-seg.missing { background:var(--red); opacity:.5; }
+
 /* ── Tooltip ─────────────────────────────── */
 #tooltip{
   position:fixed;z-index:999;
@@ -860,7 +870,13 @@ input[type=text]::placeholder{color:var(--t3);}
           <option value="128">Large</option>
         </select>
       </div>
-      <div class="stat-badge" id="gridStatBadge"><b>0</b> shown</div>
+      <div class="stat-badge" id="gridStatBadge"><b>0</b> items</div>
+    </div>
+    
+    <div class="grid-stats-bar" id="gridStatsBar" title="Tileset Coverage">
+      <div class="gsb-seg direct" id="gsbDirect" style="width:0%"></div>
+      <div class="gsb-seg fallback" id="gsbFallback" style="width:0%"></div>
+      <div class="gsb-seg missing" id="gsbMissing" style="width:0%"></div>
     </div>
 
     <div class="grid-body" id="gridBody"></div>
@@ -1404,7 +1420,29 @@ function renderGrid() {
     return true;
   });
 
-  document.getElementById('gridStatBadge').innerHTML = `<b>${gridFiltered.length.toLocaleString()}</b> shown`;
+  document.getElementById('gridStatBadge').innerHTML = `<b>${gridFiltered.length.toLocaleString()}</b> items`;
+
+  // Calculate stats bar
+  const statsBar = document.getElementById('gridStatsBar');
+  if (ts === '__ascii__' || gridFiltered.length === 0) {
+    statsBar.style.display = 'none';
+  } else {
+    statsBar.style.display = 'flex';
+    let countDirect = 0, countFallback = 0, countMissing = 0;
+    for (const e of gridFiltered) {
+      const spr = getSprite(e.id, ts);
+      if (!spr) countMissing++;
+      else if (spr.isFallback) countFallback++;
+      else countDirect++;
+    }
+    const t = gridFiltered.length;
+    const pD = (countDirect/t)*100, pF = (countFallback/t)*100, pM = (countMissing/t)*100;
+    document.getElementById('gsbDirect').style.width = pD + '%';
+    document.getElementById('gsbFallback').style.width = pF + '%';
+    document.getElementById('gsbMissing').style.width = pM + '%';
+    
+    statsBar.title = `Coverage: ${countDirect} Direct (${pD.toFixed(1)}%) | ${countFallback} Fallback (${pF.toFixed(1)}%) | ${countMissing} Missing (${pM.toFixed(1)}%)`;
+  }
 
   const body = document.getElementById('gridBody');
   body.innerHTML = '';
