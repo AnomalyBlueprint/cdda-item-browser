@@ -239,6 +239,7 @@ input[type=text]::placeholder{color:var(--t3);}
 
 #spriteTable{
   width:100%;
+  min-width:max-content;
   border-collapse:separate;
   border-spacing:0;
   table-layout:fixed;
@@ -1208,7 +1209,7 @@ function buildTableHeader() {
   // Colgroup
   const cg = document.getElementById('tableColGroup');
   let cgHtml = '<col style="width:220px"><col style="width:80px">';
-  for (let i = 0; i < TILESETS.length; i++) cgHtml += '<col>';
+  for (let i = 0; i < TILESETS.length; i++) cgHtml += '<col style="width:70px">';
   cg.innerHTML = cgHtml;
 
   // Thead row 1: column names
