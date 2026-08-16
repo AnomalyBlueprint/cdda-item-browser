@@ -1437,17 +1437,16 @@ function drawFrame(ctx, img, idx, startIdx, sprW, sprH, dx, dy, dW, dH) {
 
 function loadImg(url) {
   if (imgCache.has(url)) {
-    const img = imgCache.get(url);
-    if (img.complete && img.naturalWidth > 0) return Promise.resolve(img);
-    return new Promise(r => { img.onload = () => r(img); img.onerror = () => r(null); });
+    return imgCache.get(url);
   }
-  return new Promise(r => {
+  const promise = new Promise(r => {
     const img = new Image();
-    imgCache.set(url, img);
     img.onload  = () => r(img);
     img.onerror = () => r(null);
     img.src = './' + currentVersionPath + url;
   });
+  imgCache.set(url, promise);
+  return promise;
 }
 
 // ── Pagination ────────────────────────────────────────────────
