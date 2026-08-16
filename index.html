@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CDDA Item & Sprite Browser</title>
 <meta name="description" content="Browse all Cataclysm: Dark Days Ahead items, terrain, furniture, monsters and their sprites across every tileset.">
+<meta property="og:title" content="CDDA Item & Sprite Browser">
+<meta property="og:description" content="Browse 14,000+ CDDA items, terrain, furniture, monsters and their sprites across 11 tilesets.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#4ade80">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧟</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 /* ══════════════════════════════════════════════════
@@ -71,32 +76,35 @@ body::before{
 /* ── Header ─────────────────────────────── */
 header{
   position:relative;z-index:20;
-  height:var(--hdr-h);
-  padding:0 22px;
+  min-height:var(--hdr-h);
+  padding:6px 14px;
   border-bottom:1px solid var(--border);
   background:#0a0f16ee;
   backdrop-filter:blur(12px);
-  display:flex;align-items:center;gap:14px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   flex-shrink:0;
 }
 .logo{
   font-family:'JetBrains Mono',monospace;
-  font-size:16px;font-weight:700;
+  font-size:15px;font-weight:700;
   color:var(--green);
   text-shadow:0 0 24px var(--gglow);
+  white-space:nowrap;
 }
 .logo .sep{color:var(--t3);font-weight:400;}
 .pill{
   padding:2px 9px;border-radius:99px;
   background:var(--gdim);border:1px solid var(--green2)44;
   color:var(--green);font-size:9px;font-weight:700;letter-spacing:.6px;
+  white-space:nowrap;
 }
-.hchips{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;}
+.hchips{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap;}
 .chip{
-  padding:3px 10px;border-radius:99px;
+  padding:2px 8px;border-radius:99px;
   background:var(--card);border:1px solid var(--b2);
-  font-size:10px;color:var(--t2);
+  font-size:9px;color:var(--t2);
   font-family:'JetBrains Mono',monospace;
+  white-space:nowrap;
 }
 .chip b{color:var(--blue);}
 #loadProgress{
@@ -557,7 +565,7 @@ input[type=text]::placeholder{color:var(--t3);}
   flex-shrink:0;border:1px solid rgba(255,255,255,.08);
 }
 .ex-title-block{flex:1;min-width:0;}
-.ex-name{font-size:18px;font-weight:700;color:var(--t1);line-height:1.2;}
+.ex-name{font-size:18px;font-weight:700;color:#f1f5f9;line-height:1.2;}
 .ex-badges{
   display:flex;gap:5px;margin-top:5px;
   flex-wrap:wrap;align-items:center;
@@ -608,11 +616,11 @@ input[type=text]::placeholder{color:var(--t3);}
   border-radius:var(--rs);padding:7px;min-width:62px;
 }
 .ex-ts-label{
-  font-size:7px;color:var(--t3);
+  font-size:8px;color:var(--t2);
   font-family:'JetBrains Mono',monospace;text-align:center;
 }
 .ex-ts-card.has-sprite{border-color:var(--green2)33;}
-.ex-ts-card.no-sprite{opacity:.3;}
+.ex-ts-card.no-sprite{opacity:.35;}
 
 /* props */
 .ex-props{
@@ -656,6 +664,29 @@ input[type=text]::placeholder{color:var(--t3);}
   white-space:pre;tab-size:2;
 }
 .ex-raw.hidden{display:none;}
+
+/* ── Responsive / Mobile ─────────────────── */
+@media (max-width: 768px) {
+  :root { --hdr-h: auto; }
+  .logo { font-size:13px; }
+  .pill { display:none; }
+  .hchips { margin-left:0; }
+  .ctrl-bar, .grid-ctrl { padding:6px 8px; gap:6px; }
+  .examine-modal { border-radius:10px; }
+  .ex-header { padding:12px 12px 10px; }
+  .ex-name { font-size:15px; }
+  .ex-ascii-big { width:44px; height:44px; font-size:22px; }
+  #spriteTable colgroup col:first-child { width:140px; }
+  .td-name { font-size:10px; }
+  .table-wrap { -webkit-overflow-scrolling:touch; }
+  .pager { flex-wrap:wrap; gap:5px; }
+  .pager-info { margin-left:0; }
+}
+@media (max-width: 480px) {
+  .logo .sep:last-of-type, .logo span:last-child { display:none; }
+  .ctrl-group { flex-wrap:nowrap; }
+  select { font-size:10px; }
+}
 </style>
 </head>
 <body>
@@ -677,14 +708,13 @@ input[type=text]::placeholder{color:var(--t3);}
   
   <div class="ctrl-group" style="margin-left:24px;">
     <span class="ctrl-label" style="color:var(--green)">Version</span>
-    <select id="versionSelect" onchange="changeVersion()" style="border-color:var(--green);font-weight:600"></select>
+    <select id="versionSelect" disabled onchange="changeVersion()" style="border-color:var(--green);font-weight:600"></select>
   </div>
   
   <div class="hchips">
-    <div class="chip" id="chipBuildWrap" style="display:none">Build: <b id="chipBuild">…</b></div>
+    <div class="chip" id="chipBuildWrap" style="display:none">Built: <b id="chipBuild">…</b></div>
     <div class="chip"><b id="chipItems">…</b> items</div>
     <div class="chip"><b id="chipTypes">…</b> types</div>
-    <div class="chip"><b id="chipMods">…</b> mods</div>
     <div class="chip"><b id="chipTilesets">11</b> tilesets</div>
   </div>
 </header>
@@ -716,13 +746,6 @@ input[type=text]::placeholder{color:var(--t3);}
           <option value="furniture">🪑 Furniture</option>
           <option value="MONSTER">👾 Monsters</option>
           <option value="vehicle_part">🔧 Vehicle Parts</option>
-        </select>
-      </div>
-      <!-- Mod filter -->
-      <div class="ctrl-group">
-        <span class="ctrl-label">Mod</span>
-        <select id="modFilter" onchange="applyFilters()" style="max-width:200px">
-          <option value="">All Mods</option>
         </select>
       </div>
       <!-- Search -->
@@ -790,13 +813,6 @@ input[type=text]::placeholder{color:var(--t3);}
           <option value="vehicle_part">🔧 Vehicle Parts</option>
         </select>
       </div>
-      <!-- Mod filter -->
-      <div class="ctrl-group">
-        <span class="ctrl-label">Mod</span>
-        <select id="gridModFilter" onchange="renderGrid()" style="max-width:200px">
-          <option value="">All Mods</option>
-        </select>
-      </div>
       <!-- Search -->
       <div class="ctrl-group">
         <span class="ctrl-label">Search</span>
@@ -837,7 +853,7 @@ input[type=text]::placeholder{color:var(--t3);}
         <div class="ex-badges"  id="exBadges"></div>
         <div class="ex-id-line" id="exIdLine">—</div>
       </div>
-      <button class="ex-close" onclick="closeExamine()" title="Close (Esc)">✕</button>
+      <button class="ex-close" onclick="closeExamine()" aria-label="Close (Esc)" title="Close (Esc)">✕</button>
     </div>
     <div class="ex-body" id="exBody"></div>
   </div>
@@ -901,15 +917,11 @@ let filteredEntities = [];
 let tablePage   = 0;
 let pageSize    = 100;
 
-// Grid state  
+// Grid state
 let gridPage    = 0;
-const GRID_CHUNK= 200;
 
 // Active tab
 let activeTab   = 0;
-
-// Tileset sheets config (parsed tile_config.json data)
-let tsSheets    = {};   // tilesetName → {tileW, tileH, sections:[{file,sprW,sprH,startIdx}]}
 
 // Which tilesets to show as columns in table
 const TILESETS = [
@@ -937,10 +949,11 @@ let currentVersionPath = '';
 
 async function changeVersion() {
   const vSel = document.getElementById('versionSelect');
-  if (vSel) localStorage.setItem('cddaBrowserVersion', vSel.value);
+  if (vSel) { localStorage.setItem('cddaBrowserVersion', vSel.value); vSel.disabled = true; }
   document.getElementById('globalOverlay').classList.remove('hidden');
   imgCache.clear();
   await boot();
+  if (vSel) vSel.disabled = false;
 }
 
 async function boot() {
@@ -990,13 +1003,9 @@ async function boot() {
     buildEntityList();
     setProgress(85);
 
-    // Populate mods dropdowns
-    populateModDropdowns();
-
     // Update header chips
-    document.getElementById('chipItems').textContent    = allEntities.length.toLocaleString();
-    document.getElementById('chipTypes').textContent    = Object.keys(itemsDefs.types).length;
-    document.getElementById('chipMods').textContent     = itemsDefs.mods.length;
+    document.getElementById('chipItems').textContent = allEntities.length.toLocaleString();
+    document.getElementById('chipTypes').textContent = Object.keys(itemsDefs.types).length;
 
     // Build table columns header
     buildTableHeader();
@@ -1005,10 +1014,12 @@ async function boot() {
 
     setTimeout(() => {
       document.getElementById('globalOverlay').classList.add('hidden');
+      document.getElementById('versionSelect').disabled = false;
     }, 300);
 
   } catch(e) {
     setOvText('Boot failed ⚠️', e.message + ' — serve via HTTP (python3 -m http.server)');
+    document.getElementById('versionSelect').disabled = false;
   }
 }
 
@@ -1022,11 +1033,15 @@ function setOvText(title, sub) {
 }
 
 // ── Build entity list ─────────────────────────────────────────
+let entityMap = new Map(); // id → entity, for O(1) looks_like resolution
 function buildEntityList() {
   allEntities = [];
+  entityMap.clear();
   for (const [type, entries] of Object.entries(itemsDefs.types)) {
     for (const [id, def] of Object.entries(entries)) {
-      allEntities.push({id, type, name: def.n||id, sym: def.s||'?', color: def.c||'', looks_like: def.L||'', mod: def.mod||'__core__'});
+      const e = {id, type, name: def.n||id, sym: def.s||'?', color: def.c||'', looks_like: def.L||'', mod: def.mod||'__core__'};
+      allEntities.push(e);
+      entityMap.set(id, e);
     }
   }
   // Sort: type then name
@@ -1037,34 +1052,20 @@ function buildEntityList() {
   });
 }
 
-// ── Populate mod dropdowns ────────────────────────────────────
-function populateModDropdowns() {
-  const mods = itemsDefs.mods;
-
-  // Sort: core first, then alphabetically by display name
-  const sorted = [...mods].sort((a, b) => {
-    const aCore = (a.category === 'core');
-    const bCore = (b.category === 'core');
-    if (aCore && !bCore) return -1;
-    if (!aCore && bCore) return 1;
-    return (a.name || a.id).localeCompare(b.name || b.id);
-  });
-
-  let html = '<option value="">All Mods</option>';
-  // Separator before non-core mods
-  let pastCore = false;
-  for (const m of sorted) {
-    if (!pastCore && m.category !== 'core') {
-      html += '<option disabled>──────────</option>';
-      pastCore = true;
-    }
-    const prefix = m.category === 'core' ? '⚙ ' : '📦 ';
-    html += `<option value="${esc(m.id)}">${prefix}${esc(m.name || m.id)}</option>`;
+// ── Sprite resolver with looks_like fallback ──────────────────
+function getSprite(id, ts) {
+  if (!spriteIdx[ts]) return null;
+  let cur = id;
+  for (let depth = 0; depth < 6; depth++) {
+    if (spriteIdx[ts][cur]) return spriteIdx[ts][cur];
+    const e = entityMap.get(cur);
+    if (!e || !e.looks_like) return null;
+    cur = e.looks_like;
   }
-
-  document.getElementById('modFilter').innerHTML = html;
-  document.getElementById('gridModFilter').innerHTML = html;
+  return null;
 }
+
+
 
 // ── Build table header columns ────────────────────────────────
 function buildTableHeader() {
@@ -1099,12 +1100,10 @@ function buildTableHeader() {
 // ── Filter logic ──────────────────────────────────────────────
 function applyFilters() {
   const typeF   = document.getElementById('typeFilter').value;
-  const modF    = document.getElementById('modFilter').value;
   const searchF = document.getElementById('searchFilter').value.toLowerCase().trim();
 
   filteredEntities = allEntities.filter(e => {
     if (typeF   && e.type !== typeF) return false;
-    if (modF    && e.mod  !== modF)  return false;
     if (searchF && !e.name.toLowerCase().includes(searchF) && !e.id.toLowerCase().includes(searchF)) return false;
     return true;
   });
@@ -1129,13 +1128,11 @@ function updateCountRow() {
     if (!spriteIdx[ts]) { el.textContent = '0'; continue; }
     let count = 0;
     for (const e of filteredEntities) {
-      if (spriteIdx[ts][e.id]) count++;
+      if (getSprite(e.id, ts)) count++;
     }
     el.textContent = count.toLocaleString();
   }
 }
-
-// (applyModFilter removed — Section/Category dropdowns replaced with flat Mod dropdown)
 
 // ── Set page size ─────────────────────────────────────────────
 function setPageSize(n) {
@@ -1159,17 +1156,19 @@ function renderTable() {
   const slice = filteredEntities.slice(start, end);
 
   document.getElementById('tableStatBadge').innerHTML = `<b>${total.toLocaleString()}</b> / ${allEntities.length.toLocaleString()}`;
-  document.getElementById('tcTotal').textContent = `${total.toLocaleString()} results`;
+  const pageLabel = (ps && total > ps) ? ` (page ${tablePage+1}/${Math.ceil(total/ps)})` : '';
+  document.getElementById('tcTotal').textContent = `${total.toLocaleString()} results${pageLabel}`;
 
   // Group by type within current page
   const rows = buildTableRows(slice);
-  document.getElementById('tableBody').innerHTML = rows;
-
-  // Render ASCII cells
-  renderASCIICells();
-
-  // Lazy-render sprite cells as they scroll into view
-  setupSpriteObserver();
+  const tbody = document.getElementById('tableBody');
+  if (slice.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${2+TILESETS.length}" style="text-align:center;padding:48px;color:var(--t3);font-size:12px;">🔍 No results found</td></tr>`;
+  } else {
+    tbody.innerHTML = rows;
+    // Lazy-render sprite cells as they scroll into view
+    setupSpriteObserver();
+  }
 
   renderPager(total, ps, start, end);
   // Scroll to top
@@ -1214,7 +1213,7 @@ function buildTableRows(slice) {
 
     // Sprite cols (lazy)
     for (const ts of TILESETS) {
-      const sp = spriteIdx[ts] ? spriteIdx[ts][e.id] : null;
+      const sp = getSprite(e.id, ts);
       if (sp) {
         html += `<td class="td-sprite">
           <div class="sprite-canvas-wrap" 
@@ -1233,11 +1232,6 @@ function buildTableRows(slice) {
     html += '</tr>';
   }
   return html;
-}
-
-// ── ASCII cell rendering ──────────────────────────────────────
-function renderASCIICells() {
-  // Already rendered via inline HTML
 }
 
 // ── Sprite lazy loading via IntersectionObserver ─────────────
@@ -1371,16 +1365,14 @@ const GRID_BATCH  = 150;
 function renderGrid() {
   const ts        = document.getElementById('gridTilesetSel').value;
   const typeF     = document.getElementById('gridTypeFilter').value;
-  const modF      = document.getElementById('gridModFilter').value;
   const searchF   = document.getElementById('gridSearch').value.toLowerCase().trim();
   const onlySprite= document.getElementById('gridOnlySprite').checked;
 
   gridFiltered = allEntities.filter(e => {
     if (typeF && e.type !== typeF) return false;
-    if (modF  && e.mod  !== modF)  return false;
     if (searchF && !e.name.toLowerCase().includes(searchF) && !e.id.toLowerCase().includes(searchF)) return false;
     if (onlySprite && ts !== '__ascii__') {
-      if (!spriteIdx[ts]?.[e.id]) return false;
+      if (!getSprite(e.id, ts)) return false;
     }
     return true;
   });
@@ -1425,7 +1417,7 @@ function appendGridBatch(ts) {
 
   for (let i = gridRendered; i < end; i++) {
     const e   = gridFiltered[i];
-    const sp  = ts !== '__ascii__' && spriteIdx[ts] ? spriteIdx[ts][e.id] : null;
+    const sp  = ts !== '__ascii__' ? getSprite(e.id, ts) : null;
     const card = document.createElement('div');
     card.className = 'grid-card';
     card.style.width  = cardSize + 'px';
@@ -1554,10 +1546,6 @@ function applyGridSize() {
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-function getModName(modId) {
-  const m = itemsDefs?.mods?.find(m => m.id === modId);
-  return m ? m.name : modId;
-}
 
 // ══ EXAMINE MODAL ════════════════════════════════════════════
 const FIELD_DECODE = {
@@ -1634,7 +1622,7 @@ function openExamine(ent) {
     `<div class="ex-ts-label">ASCII</div></div>`;
   // Tileset cards
   for (const ts of TILESETS) {
-    const sp    = spriteIdx[ts]?.[ent.id];
+    const sp    = getSprite(ent.id, ts);
     const short = TS_SHORT[ts] || ts;
     if (sp) {
       html += `<div class="ex-ts-card has-sprite">`+
@@ -1701,6 +1689,16 @@ function toggleExRaw() {
 
 document.getElementById('examineOverlay').addEventListener('click', function(ev) {
   if (ev.target === this) closeExamine();
+});
+
+// Focus trap inside examine modal
+document.getElementById('examineOverlay').addEventListener('keydown', function(ev) {
+  if (!this.classList.contains('hidden') && ev.key === 'Tab') {
+    const focusable = this.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    const first = focusable[0], last = focusable[focusable.length - 1];
+    if (ev.shiftKey) { if (document.activeElement === first) { last.focus(); ev.preventDefault(); } }
+    else             { if (document.activeElement === last)  { first.focus(); ev.preventDefault(); } }
+  }
 });
 
 // ── Keyboard shortcuts ────────────────────────────────────────
