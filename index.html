@@ -780,10 +780,11 @@ style#colStyles { display: none; }
   </div>
   
   <div class="hchips">
-    <div class="chip" id="chipBuildWrap" style="display:none">Built: <b id="chipBuild">…</b></div>
+    <div class="chip" id="chipBuildWrap" style="display:none">Game Built: <b id="chipBuild">…</b></div>
+    <div class="chip" id="chipUpdateWrap" style="display:none">Site Updated: <b id="chipUpdate">…</b></div>
     <div class="chip"><b id="chipItems">…</b> items</div>
     <div class="chip"><b id="chipTypes">…</b> types</div>
-    <div class="chip"><b id="chipTilesets">11</b> tilesets</div>
+    <div class="chip"><b id="chipTilesets">…</b> tilesets</div>
   </div>
 </header>
 
@@ -808,12 +809,8 @@ style#colStyles { display: none; }
       <div class="ctrl-group">
         <span class="ctrl-label">Type</span>
         <select id="typeFilter" onchange="applyFilters()">
+          <!-- Dynamically populated -->
           <option value="">All Types</option>
-          <option value="ITEM">🎒 Items</option>
-          <option value="terrain">🌿 Terrain</option>
-          <option value="furniture">🪑 Furniture</option>
-          <option value="MONSTER">👾 Monsters</option>
-          <option value="vehicle_part">🔧 Vehicle Parts</option>
         </select>
       </div>
       <!-- Search -->
@@ -878,12 +875,8 @@ style#colStyles { display: none; }
       <div class="ctrl-group">
         <span class="ctrl-label">Type</span>
         <select id="gridTypeFilter" onchange="renderGrid()">
+          <!-- Dynamically populated -->
           <option value="">All Types</option>
-          <option value="ITEM">🎒 Items</option>
-          <option value="terrain">🌿 Terrain</option>
-          <option value="furniture">🪑 Furniture</option>
-          <option value="MONSTER">👾 Monsters</option>
-          <option value="vehicle_part">🔧 Vehicle Parts</option>
         </select>
       </div>
       <!-- Search -->
@@ -1009,20 +1002,13 @@ let gridPage    = 0;
 // Active tab
 let activeTab   = 0;
 
-// Which tilesets to show as columns in table
-const TILESETS = [
-  'UltimateCataclysm','RetroDaysTileset','MshockXotto+',
-  'Cuteclysm','HollowMoon','PenAndPaper','GiantDays',
-  'ChibiUltica','BrownLikeBears','NeoDaysTileset','Altica',
-];
-
 const TYPE_COLORS = {
   ITEM:'#60a5fa', terrain:'#4ade80', furniture:'#fbbf24',
   MONSTER:'#f87171', vehicle_part:'#a78bfa',
 };
 
-// Column visibility state
-let visibleCols = new Set(TILESETS);
+let TILESETS = [];
+let visibleCols = new Set();
 try {
   const saved = localStorage.getItem('cddaBrowserCols');
   if (saved) visibleCols = new Set(JSON.parse(saved));
@@ -1076,6 +1062,13 @@ async function boot() {
   } else {
     document.getElementById('chipBuildWrap').style.display = 'none';
   }
+  
+  if (curV && curV.updated_at) {
+    document.getElementById('chipUpdateWrap').style.display = '';
+    document.getElementById('chipUpdate').textContent = curV.updated_at;
+  } else {
+    document.getElementById('chipUpdateWrap').style.display = 'none';
+  }
 
   setProgress(5);
   setOvText('Loading definitions…', `Fetching data for ${curV?.name || 'Local'}`);
@@ -1096,9 +1089,35 @@ async function boot() {
     buildEntityList();
     setProgress(85);
 
+    // Populate type dropdowns dynamically
+    const types = Object.keys(itemsDefs.types).sort();
+    const typeNames = {ITEM:'🎒 Items', terrain:'🌿 Terrain', furniture:'🪑 Furniture', MONSTER:'👾 Monsters', vehicle_part:'🔧 Vehicle Parts'};
+    const typeOpts = '<option value="">All Types</option>' + types.map(t => `<option value="${t}">${typeNames[t] || `🔹 ${t}`}</option>`).join('');
+    document.getElementById('typeFilter').innerHTML = typeOpts;
+    document.getElementById('gridTypeFilter').innerHTML = typeOpts;
+
+    // Dynamically set TILESETS and their preferred order
+    const PREF_ORDER = [
+      'UltimateCataclysm', 'RetroDaysTileset', 'Retrodays', 'MshockXotto+', 'MShockXotto+',
+      'Cuteclysm', 'HollowMoon', 'PenAndPaper', 'GiantDays', 'ChibiUltica',
+      'BrownLikeBears', 'NeoDaysTileset', 'NeoDays', 'Altica'
+    ];
+    TILESETS = Object.keys(spriteIdx).sort((a,b) => {
+      let ia = PREF_ORDER.indexOf(a);
+      let ib = PREF_ORDER.indexOf(b);
+      if (ia === -1) ia = 999;
+      if (ib === -1) ib = 999;
+      if (ia !== ib) return ia - ib;
+      return a.localeCompare(b);
+    });
+    
+    // Initialize visible columns if empty
+    if (visibleCols.size === 0) visibleCols = new Set(TILESETS);
+
     // Update header chips
     document.getElementById('chipItems').textContent = allEntities.length.toLocaleString();
     document.getElementById('chipTypes').textContent = Object.keys(itemsDefs.types).length;
+    document.getElementById('chipTilesets').textContent = TILESETS.length;
 
     // Build table columns header & toggles
     buildColToggles();
