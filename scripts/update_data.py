@@ -26,6 +26,13 @@ API_URL = 'https://api.github.com/repos/CleverRaven/Cataclysm-DDA/releases?per_p
 if 'GITHUB_TOKEN' in os.environ:
     HEADERS['Authorization'] = f"token {os.environ['GITHUB_TOKEN']}"
 
+def has_valid_asset(release):
+    for asset in release.get('assets', []):
+        name = asset['name'].lower()
+        if 'windows' in name and ('graphics' in name or 'tiles' in name) and name.endswith('.zip'):
+            return True
+    return False
+
 def fetch_releases():
     print("Fetching latest stable release...")
     targets = []
@@ -43,7 +50,7 @@ def fetch_releases():
     with urllib.request.urlopen(req) as response:
         releases = json.loads(response.read().decode())
         
-    experimental = [r for r in releases if r.get('prerelease')][:5]
+    experimental = [r for r in releases if r.get('prerelease') and has_valid_asset(r)][:5]
     targets.extend(experimental)
     
     return targets
@@ -53,7 +60,7 @@ def find_asset(release):
         name = asset['name'].lower()
         if 'windows' in name and ('graphics' in name or 'tiles' in name) and name.endswith('.zip'):
             return asset['browser_download_url']
-    return release.get('zipball_url')
+    return None
 
 def extract_sprites(val):
     if isinstance(val, int):
@@ -233,6 +240,10 @@ def main():
         
         if not is_local_dir:
             dl_url = find_asset(release)
+            if not dl_url:
+                print(f"  No valid Windows zip asset found for {version_id}, skipping.")
+                continue
+
             zip_path = f"{version_id}.zip"
             
             if not os.path.exists(zip_path):
