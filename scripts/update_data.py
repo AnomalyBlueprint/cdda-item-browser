@@ -308,6 +308,7 @@ def main():
             "name": version_name,
             "path": f"versions/{version_id}/",
             "build_time": build_time,
+            "updated_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
             "script_version": SCRIPT_VERSION
         })
         
