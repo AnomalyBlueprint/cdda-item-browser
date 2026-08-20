@@ -7,6 +7,20 @@
     "script_version": 1
   },
   {
+    "id": "cdda-experimental-2026-08-19-2201",
+    "name": "Cataclysm-DDA experimental build 2026-08-19-2201",
+    "path": "versions/cdda-experimental-2026-08-19-2201/",
+    "build_time": "2026-08-19 22:01 UTC",
+    "script_version": 1
+  },
+  {
+    "id": "cdda-experimental-2026-08-19-1514",
+    "name": "Cataclysm-DDA experimental build 2026-08-19-1514",
+    "path": "versions/cdda-experimental-2026-08-19-1514/",
+    "build_time": "2026-08-19 15:14 UTC",
+    "script_version": 1
+  },
+  {
     "id": "cdda-experimental-2026-08-19-0913",
     "name": "Cataclysm-DDA experimental build 2026-08-19-0913",
     "path": "versions/cdda-experimental-2026-08-19-0913/",
@@ -25,20 +39,6 @@
     "name": "Cataclysm-DDA experimental build 2026-08-19-0222",
     "path": "versions/cdda-experimental-2026-08-19-0222/",
     "build_time": "2026-08-19 02:22 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-experimental-2026-08-18-2324",
-    "name": "Cataclysm-DDA experimental build 2026-08-18-2324",
-    "path": "versions/cdda-experimental-2026-08-18-2324/",
-    "build_time": "2026-08-18 23:25 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-experimental-2026-08-18-2125",
-    "name": "Cataclysm-DDA experimental build 2026-08-18-2125",
-    "path": "versions/cdda-experimental-2026-08-18-2125/",
-    "build_time": "2026-08-18 21:25 UTC",
     "script_version": 1
   }
 ]
