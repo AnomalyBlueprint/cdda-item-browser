@@ -858,17 +858,7 @@ style#colStyles { display: none; }
         <span class="ctrl-label">Tileset</span>
         <select id="gridTilesetSel" onchange="renderGrid()">
           <option value="__ascii__">◈ ASCII (Color)</option>
-          <option value="UltimateCataclysm">🎨 UltimateCataclysm</option>
-          <option value="RetroDaysTileset">🎨 RetroDays</option>
-          <option value="MshockXotto+">🎨 MshockXotto+</option>
-          <option value="Cuteclysm">🎨 Cuteclysm</option>
-          <option value="HollowMoon">🎨 HollowMoon</option>
-          <option value="PenAndPaper">🎨 Pen &amp; Paper</option>
-          <option value="GiantDays">🎨 GiantDays</option>
-          <option value="ChibiUltica">🎨 ChibiUltica</option>
-          <option value="BrownLikeBears">🎨 BrownLikeBears</option>
-          <option value="NeoDaysTileset">🎨 NeoDays</option>
-          <option value="Altica">🎨 Alt Ultica</option>
+          <!-- Dynamically populated -->
         </select>
       </div>
       <!-- Type filter -->
@@ -1113,6 +1103,16 @@ async function boot() {
     
     // Initialize visible columns if empty
     if (visibleCols.size === 0) visibleCols = new Set(TILESETS);
+    
+    // Populate grid tileset dropdown
+    const tsSel = document.getElementById('gridTilesetSel');
+    const currentTs = tsSel.value;
+    let tsHtml = '<option value="__ascii__">◈ ASCII (Color)</option>';
+    for (const ts of TILESETS) {
+      tsHtml += `<option value="${ts}">🎨 ${ts}</option>`;
+    }
+    tsSel.innerHTML = tsHtml;
+    if (TILESETS.includes(currentTs) || currentTs === '__ascii__') tsSel.value = currentTs;
 
     // Update header chips
     document.getElementById('chipItems').textContent = allEntities.length.toLocaleString();
