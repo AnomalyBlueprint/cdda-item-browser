@@ -380,8 +380,8 @@ style#colStyles { display: none; }
   font-family:'JetBrains Mono',monospace;
 }
 /* Fallback indicator on sprite cell */
-.sprite-canvas-wrap.spr-fallback { position:relative; }
-.sprite-canvas-wrap.spr-fallback::after {
+.sprite-canvas-wrap.spr-fallback, .gc-sprite.spr-fallback { position:relative; }
+.sprite-canvas-wrap.spr-fallback::after, .gc-sprite.spr-fallback::after {
   content:'↩';
   position:absolute;bottom:0;right:0;
   font-size:7px;line-height:1;
@@ -389,6 +389,17 @@ style#colStyles { display: none; }
   border-radius:2px 0 0 0;
   padding:1px 2px;
   pointer-events:none;
+}
+.sprite-canvas-wrap.spr-font-fallback, .gc-sprite.spr-font-fallback { position:relative; }
+.sprite-canvas-wrap.spr-font-fallback::after, .gc-sprite.spr-font-fallback::after {
+  content:'Aa';
+  position:absolute;bottom:0;right:0;
+  font-size:7px;line-height:1;
+  color:var(--blue);background:var(--bg);
+  border-radius:2px 0 0 0;
+  padding:1px 2px;
+  pointer-events:none;
+  font-family:'JetBrains Mono',monospace;
 }
 
 /* Sprite skeleton loader */
@@ -882,7 +893,7 @@ style#colStyles { display: none; }
           <option value="has">✓ Has Sprite</option>
           <option value="fb">↩ Fallback Only</option>
           <option value="any">✓ Any (Direct+Fallback)</option>
-          <option value="missing">✗ Missing (No Sprite)</option>
+          <option value="missing">✗ Font Fallback (Missing)</option>
         </select>
       </div>
       <!-- Card size -->
@@ -1390,7 +1401,11 @@ function buildTableRows(slice) {
           </div>
         </td>`;
       } else {
-        html += `<td class="td-sprite"><span class="sprite-miss">—</span></td>`;
+        html += `<td class="td-sprite">
+          <div class="sprite-canvas-wrap spr-font-fallback" title="Font Fallback (ASCII)">
+            <span class="sprite-miss">—</span>
+          </div>
+        </td>`;
       }
     }
     html += '</tr>';
@@ -1665,6 +1680,7 @@ function appendGridBatch(ts) {
       sprWrap.appendChild(ascCell);
     } else if (sp) {
       // Sprite canvas — lazy loaded via observer
+      if (isFallback) sprWrap.classList.add('spr-fallback');
       const canvas = document.createElement('canvas');
       canvas.width  = sprSize;
       canvas.height = sprSize;
@@ -1689,6 +1705,7 @@ function appendGridBatch(ts) {
       ascCell.className = 'gc-ascii-cell';
       ascCell.style.cssText = `background:${bg};color:${fg};width:${sprSize}px;height:${sprSize}px;font-size:${Math.round(sprSize*0.45)}px;opacity:.4`;
       ascCell.textContent = sym;
+      sprWrap.classList.add('spr-font-fallback');
       sprWrap.appendChild(ascCell);
     }
 
