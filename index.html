@@ -1177,18 +1177,65 @@ function buildEntityList() {
   });
 }
 
+const ASCII_COLORS = [
+  { c: 'black', color: 'BLACK', bold: false },
+  { c: 'white', color: 'WHITE', bold: true },
+  { c: 'light_gray', color: 'WHITE', bold: false },
+  { c: 'dark_gray', color: 'BLACK', bold: true },
+  { c: 'red', color: 'RED', bold: false },
+  { c: 'green', color: 'GREEN', bold: false },
+  { c: 'blue', color: 'BLUE', bold: false },
+  { c: 'cyan', color: 'CYAN', bold: false },
+  { c: 'magenta', color: 'MAGENTA', bold: false },
+  { c: 'brown', color: 'YELLOW', bold: false },
+  { c: 'light_red', color: 'RED', bold: true },
+  { c: 'light_green', color: 'GREEN', bold: true },
+  { c: 'light_blue', color: 'BLUE', bold: true },
+  { c: 'light_cyan', color: 'CYAN', bold: true },
+  { c: 'pink', color: 'MAGENTA', bold: true },
+  { c: 'yellow', color: 'YELLOW', bold: true }
+];
+
+function getAsciiFallbackSprite(id, ts) {
+  const tsData = spriteIdx[ts];
+  if (!tsData || !tsData.__ascii__) return null;
+  const e = entityMap.get(id);
+  if (!e) return null;
+  
+  const asciiCfg = tsData.__ascii__;
+  const sym = e.sym && e.sym !== ' ' ? e.sym : '·';
+  let charCode = sym.charCodeAt(0);
+  if (charCode > 255) charCode = 63;
+  
+  const match = ASCII_COLORS.find(r => r.c === e.color) || ASCII_COLORS[2];
+  const rule = asciiCfg.rules.find(r => r.color === match.color && !!r.bold === match.bold) || asciiCfg.rules[0];
+  
+  return {
+    sprite: {
+      file: asciiCfg.file,
+      sw: asciiCfg.sw,
+      sh: asciiCfg.sh,
+      start: 0,
+      fg: rule.offset + charCode,
+      bg: ''
+    },
+    isFallback: false,
+    isAsciiFont: true
+  };
+}
+
 // ── Sprite resolver with looks_like fallback ──────────────────
-// Returns {sprite, isFallback, sourceId} or null
+// Returns {sprite, isFallback, sourceId, isAsciiFont} or null
 function getSprite(id, ts) {
   if (!spriteIdx[ts]) return null;
   let cur = id;
   for (let depth = 0; depth < 6; depth++) {
-    if (spriteIdx[ts][cur]) return { sprite: spriteIdx[ts][cur], isFallback: depth > 0, sourceId: cur };
+    if (spriteIdx[ts][cur]) return { sprite: spriteIdx[ts][cur], isFallback: depth > 0, sourceId: cur, isAsciiFont: false };
     const e = entityMap.get(cur);
-    if (!e || !e.looks_like) return null;
+    if (!e || !e.looks_like) break;
     cur = e.looks_like;
   }
-  return null;
+  return getAsciiFallbackSprite(id, ts);
 }
 
 // ── Column Visibility ─────────────────────────────────────────
@@ -1390,12 +1437,13 @@ function buildTableRows(slice) {
       if (result) {
         const sp = result.sprite;
         const fallbackAttr = result.isFallback ? ` data-fallback="1" data-source="${esc(result.sourceId)}"` : '';
+        const fontClass = result.isAsciiFont ? ' spr-font-fallback' : (result.isFallback ? ' spr-fallback' : '');
         html += `<td class="td-sprite">
-          <div class="sprite-canvas-wrap${result.isFallback?' spr-fallback':''}" 
+          <div class="sprite-canvas-wrap${fontClass}" 
             data-ts="${esc(ts)}" 
             data-id="${esc(e.id)}"
             data-fg="${sp.fg??''}" data-bg="${sp.bg??''}"
-            data-si="${sp.si}" data-start="${sp.start}"
+            data-si="${sp.si??''}" data-start="${sp.start??''}"
             data-sw="${sp.sw}" data-sh="${sp.sh}"
             data-file="${esc(sp.file)}"${fallbackAttr}>
           </div>
@@ -1578,10 +1626,10 @@ function renderGrid() {
     if (searchF && !e.name.toLowerCase().includes(searchF) && !e.id.toLowerCase().includes(searchF)) return false;
     if (ts !== '__ascii__') {
       const spr = getSprite(e.id, ts);
-      if (spriteF === 'has' && (!spr || spr.isFallback)) return false;
-      if (spriteF === 'fb' && (!spr || !spr.isFallback)) return false;
-      if (spriteF === 'any' && !spr) return false;
-      if (spriteF === 'missing' && spr) return false;
+      if (spriteF === 'has' && (!spr || spr.isFallback || spr.isAsciiFont)) return false;
+      if (spriteF === 'fb' && (!spr || !spr.isFallback || spr.isAsciiFont)) return false;
+      if (spriteF === 'any' && (!spr || spr.isAsciiFont)) return false;
+      if (spriteF === 'missing' && (spr && !spr.isAsciiFont)) return false;
     }
     return true;
   });
@@ -1598,7 +1646,7 @@ function renderGrid() {
     let countDirect = 0, countFallback = 0, countMissing = 0;
     for (const e of gridFiltered) {
       const spr = getSprite(e.id, ts);
-      if (!spr) countMissing++;
+      if (!spr || spr.isAsciiFont) countMissing++;
       else if (spr.isFallback) countFallback++;
       else countDirect++;
     }
@@ -1680,7 +1728,9 @@ function appendGridBatch(ts) {
       sprWrap.appendChild(ascCell);
     } else if (sp) {
       // Sprite canvas — lazy loaded via observer
-      if (isFallback) sprWrap.classList.add('spr-fallback');
+      if (result.isAsciiFont) sprWrap.classList.add('spr-font-fallback');
+      else if (result.isFallback) sprWrap.classList.add('spr-fallback');
+      
       const canvas = document.createElement('canvas');
       canvas.width  = sprSize;
       canvas.height = sprSize;
