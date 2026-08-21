@@ -125,6 +125,14 @@ def generate_sprite_index(gfx_dir, target_dir):
                     
                 actual_start = current_sprite_offset
                 
+                if 'ascii' in sheet:
+                    ts_data['__ascii__'] = {
+                        "file": f"gfx/{tileset}/{file_name}",
+                        "sw": sw,
+                        "sh": sh,
+                        "rules": sheet['ascii']
+                    }
+                
                 if 'tiles' in sheet:
                     for tile in sheet['tiles']:
                         t_id = tile.get('id')
