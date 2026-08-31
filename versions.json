@@ -7,6 +7,30 @@
     "script_version": 1
   },
   {
+    "id": "cdda-experimental-2026-08-30-2341",
+    "name": "Cataclysm-DDA experimental build 2026-08-30-2341",
+    "path": "versions/cdda-experimental-2026-08-30-2341/",
+    "build_time": "2026-08-30 23:42 UTC",
+    "updated_at": "2026-08-31 04:58 UTC",
+    "script_version": 1
+  },
+  {
+    "id": "cdda-experimental-2026-08-30-2256",
+    "name": "Cataclysm-DDA experimental build 2026-08-30-2256",
+    "path": "versions/cdda-experimental-2026-08-30-2256/",
+    "build_time": "2026-08-30 22:56 UTC",
+    "updated_at": "2026-08-31 04:58 UTC",
+    "script_version": 1
+  },
+  {
+    "id": "cdda-experimental-2026-08-30-0454",
+    "name": "Cataclysm-DDA experimental build 2026-08-30-0454",
+    "path": "versions/cdda-experimental-2026-08-30-0454/",
+    "build_time": "2026-08-30 04:55 UTC",
+    "updated_at": "2026-08-31 04:58 UTC",
+    "script_version": 1
+  },
+  {
     "id": "cdda-experimental-2026-08-29-2341",
     "name": "Cataclysm-DDA experimental build 2026-08-29-2341",
     "path": "versions/cdda-experimental-2026-08-29-2341/",
@@ -19,30 +43,6 @@
     "name": "Cataclysm-DDA experimental build 2026-08-29-2234",
     "path": "versions/cdda-experimental-2026-08-29-2234/",
     "build_time": "2026-08-29 22:34 UTC",
-    "updated_at": "2026-08-30 04:55 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-experimental-2026-08-29-0503",
-    "name": "Cataclysm-DDA experimental build 2026-08-29-0503",
-    "path": "versions/cdda-experimental-2026-08-29-0503/",
-    "build_time": "2026-08-29 05:03 UTC",
-    "updated_at": "2026-08-29 06:41 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-experimental-2026-08-29-0349",
-    "name": "Cataclysm-DDA experimental build 2026-08-29-0349",
-    "path": "versions/cdda-experimental-2026-08-29-0349/",
-    "build_time": "2026-08-29 03:49 UTC",
-    "updated_at": "2026-08-29 06:41 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-0.I-2026-08-29-2214",
-    "name": "Cataclysm-DDA 0.I release candidate 2026-08-29-2214",
-    "path": "versions/cdda-0.I-2026-08-29-2214/",
-    "build_time": "2026-08-29 22:14 UTC",
     "updated_at": "2026-08-30 04:55 UTC",
     "script_version": 1
   }
