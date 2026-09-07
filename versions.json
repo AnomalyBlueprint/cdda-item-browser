@@ -7,6 +7,30 @@
     "script_version": 1
   },
   {
+    "id": "cdda-experimental-2026-09-06-1938",
+    "name": "Cataclysm-DDA experimental build 2026-09-06-1938",
+    "path": "versions/cdda-experimental-2026-09-06-1938/",
+    "build_time": "2026-09-06 19:38 UTC",
+    "updated_at": "2026-09-07 04:03 UTC",
+    "script_version": 1
+  },
+  {
+    "id": "cdda-experimental-2026-09-06-1715",
+    "name": "Cataclysm-DDA experimental build 2026-09-06-1715",
+    "path": "versions/cdda-experimental-2026-09-06-1715/",
+    "build_time": "2026-09-06 17:15 UTC",
+    "updated_at": "2026-09-07 04:03 UTC",
+    "script_version": 1
+  },
+  {
+    "id": "cdda-experimental-2026-09-06-1529",
+    "name": "Cataclysm-DDA experimental build 2026-09-06-1529",
+    "path": "versions/cdda-experimental-2026-09-06-1529/",
+    "build_time": "2026-09-06 15:29 UTC",
+    "updated_at": "2026-09-07 04:03 UTC",
+    "script_version": 1
+  },
+  {
     "id": "cdda-experimental-2026-09-05-2322",
     "name": "Cataclysm-DDA experimental build 2026-09-05-2322",
     "path": "versions/cdda-experimental-2026-09-05-2322/",
@@ -20,30 +44,6 @@
     "path": "versions/cdda-experimental-2026-09-05-1546/",
     "build_time": "2026-09-05 15:46 UTC",
     "updated_at": "2026-09-06 04:04 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-experimental-2026-09-05-0548",
-    "name": "Cataclysm-DDA experimental build 2026-09-05-0548",
-    "path": "versions/cdda-experimental-2026-09-05-0548/",
-    "build_time": "2026-09-05 05:48 UTC",
-    "updated_at": "2026-09-06 04:04 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-experimental-2026-09-05-0438",
-    "name": "Cataclysm-DDA experimental build 2026-09-05-0438",
-    "path": "versions/cdda-experimental-2026-09-05-0438/",
-    "build_time": "2026-09-05 04:38 UTC",
-    "updated_at": "2026-09-06 04:04 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-0.I-2026-09-05-2307",
-    "name": "Cataclysm-DDA 0.I release candidate 2026-09-05-2307",
-    "path": "versions/cdda-0.I-2026-09-05-2307/",
-    "build_time": "2026-09-05 23:07 UTC",
-    "updated_at": "2026-09-06 04:05 UTC",
     "script_version": 1
   }
 ]
