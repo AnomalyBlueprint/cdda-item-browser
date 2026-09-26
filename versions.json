@@ -8,43 +8,43 @@
     "script_version": 1
   },
   {
+    "id": "cdda-experimental-2026-09-25-2133",
+    "name": "Cataclysm-DDA experimental build 2026-09-25-2133",
+    "path": "versions/cdda-experimental-2026-09-25-2133/",
+    "build_time": "2026-09-25 21:33 UTC",
+    "updated_at": "2026-09-26 04:32 UTC",
+    "script_version": 1
+  },
+  {
+    "id": "cdda-experimental-2026-09-25-2054",
+    "name": "Cataclysm-DDA experimental build 2026-09-25-2054",
+    "path": "versions/cdda-experimental-2026-09-25-2054/",
+    "build_time": "2026-09-25 20:54 UTC",
+    "updated_at": "2026-09-26 04:32 UTC",
+    "script_version": 1
+  },
+  {
+    "id": "cdda-experimental-2026-09-25-1304",
+    "name": "Cataclysm-DDA experimental build 2026-09-25-1304",
+    "path": "versions/cdda-experimental-2026-09-25-1304/",
+    "build_time": "2026-09-25 13:04 UTC",
+    "updated_at": "2026-09-26 04:33 UTC",
+    "script_version": 1
+  },
+  {
+    "id": "cdda-experimental-2026-09-25-1218",
+    "name": "Cataclysm-DDA experimental build 2026-09-25-1218",
+    "path": "versions/cdda-experimental-2026-09-25-1218/",
+    "build_time": "2026-09-25 12:19 UTC",
+    "updated_at": "2026-09-26 04:33 UTC",
+    "script_version": 1
+  },
+  {
     "id": "cdda-experimental-2026-09-25-0112",
     "name": "Cataclysm-DDA experimental build 2026-09-25-0112",
     "path": "versions/cdda-experimental-2026-09-25-0112/",
     "build_time": "2026-09-25 01:12 UTC",
     "updated_at": "2026-09-25 04:28 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-experimental-2026-09-25-0027",
-    "name": "Cataclysm-DDA experimental build 2026-09-25-0027",
-    "path": "versions/cdda-experimental-2026-09-25-0027/",
-    "build_time": "2026-09-25 00:27 UTC",
-    "updated_at": "2026-09-25 04:28 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-experimental-2026-09-24-1634",
-    "name": "Cataclysm-DDA experimental build 2026-09-24-1634",
-    "path": "versions/cdda-experimental-2026-09-24-1634/",
-    "build_time": "2026-09-24 16:35 UTC",
-    "updated_at": "2026-09-25 04:28 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-experimental-2026-09-23-2123",
-    "name": "Cataclysm-DDA experimental build 2026-09-23-2123",
-    "path": "versions/cdda-experimental-2026-09-23-2123/",
-    "build_time": "2026-09-23 21:23 UTC",
-    "updated_at": "2026-09-24 04:16 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-experimental-2026-09-23-2042",
-    "name": "Cataclysm-DDA experimental build 2026-09-23-2042",
-    "path": "versions/cdda-experimental-2026-09-23-2042/",
-    "build_time": "2026-09-23 20:42 UTC",
-    "updated_at": "2026-09-24 04:16 UTC",
     "script_version": 1
   }
 ]
