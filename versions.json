@@ -8,6 +8,30 @@
     "script_version": 1
   },
   {
+    "id": "cdda-experimental-2026-10-06-1807",
+    "name": "Cataclysm-DDA experimental build 2026-10-06-1807",
+    "path": "versions/cdda-experimental-2026-10-06-1807/",
+    "build_time": "2026-10-06 18:07 UTC",
+    "updated_at": "2026-10-07 05:27 UTC",
+    "script_version": 1
+  },
+  {
+    "id": "cdda-experimental-2026-10-06-1653",
+    "name": "Cataclysm-DDA experimental build 2026-10-06-1653",
+    "path": "versions/cdda-experimental-2026-10-06-1653/",
+    "build_time": "2026-10-06 16:54 UTC",
+    "updated_at": "2026-10-07 05:27 UTC",
+    "script_version": 1
+  },
+  {
+    "id": "cdda-experimental-2026-10-06-1205",
+    "name": "Cataclysm-DDA experimental build 2026-10-06-1205",
+    "path": "versions/cdda-experimental-2026-10-06-1205/",
+    "build_time": "2026-10-06 12:06 UTC",
+    "updated_at": "2026-10-07 05:27 UTC",
+    "script_version": 1
+  },
+  {
     "id": "cdda-experimental-2026-10-06-0253",
     "name": "Cataclysm-DDA experimental build 2026-10-06-0253",
     "path": "versions/cdda-experimental-2026-10-06-0253/",
@@ -21,30 +45,6 @@
     "path": "versions/cdda-experimental-2026-10-05-1423/",
     "build_time": "2026-10-05 14:24 UTC",
     "updated_at": "2026-10-06 05:54 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-experimental-2026-10-05-1322",
-    "name": "Cataclysm-DDA experimental build 2026-10-05-1322",
-    "path": "versions/cdda-experimental-2026-10-05-1322/",
-    "build_time": "2026-10-05 13:22 UTC",
-    "updated_at": "2026-10-06 05:54 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-experimental-2026-10-04-1935",
-    "name": "Cataclysm-DDA experimental build 2026-10-04-1935",
-    "path": "versions/cdda-experimental-2026-10-04-1935/",
-    "build_time": "2026-10-04 19:35 UTC",
-    "updated_at": "2026-10-05 05:07 UTC",
-    "script_version": 1
-  },
-  {
-    "id": "cdda-experimental-2026-10-04-1506",
-    "name": "Cataclysm-DDA experimental build 2026-10-04-1506",
-    "path": "versions/cdda-experimental-2026-10-04-1506/",
-    "build_time": "2026-10-04 15:06 UTC",
-    "updated_at": "2026-10-05 05:07 UTC",
     "script_version": 1
   }
 ]
